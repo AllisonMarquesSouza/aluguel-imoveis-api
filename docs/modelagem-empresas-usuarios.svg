@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1080" viewBox="0 0 1600 1080">
+  <defs>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#14213d" flood-opacity="0.14"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#315a8a"/>
+    </marker>
+    <style>
+      .title { font-family: Arial, sans-serif; font-size: 34px; font-weight: 700; fill: #14213d; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 18px; fill: #506176; }
+      .table-title { font-family: Arial, sans-serif; font-size: 24px; font-weight: 700; fill: #ffffff; }
+      .table-subtitle { font-family: Arial, sans-serif; font-size: 15px; fill: #dce8f5; }
+      .field { font-family: Arial, sans-serif; font-size: 17px; fill: #18283c; }
+      .type { font-family: 'Courier New', monospace; font-size: 16px; fill: #315a8a; }
+      .key { font-family: Arial, sans-serif; font-size: 14px; font-weight: 700; fill: #ffffff; }
+      .note-title { font-family: Arial, sans-serif; font-size: 18px; font-weight: 700; fill: #14213d; }
+      .note { font-family: Arial, sans-serif; font-size: 16px; fill: #30445c; }
+      .small { font-family: Arial, sans-serif; font-size: 14px; fill: #506176; }
+      .cardinality { font-family: Arial, sans-serif; font-size: 18px; font-weight: 700; fill: #315a8a; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="1080" fill="#f5f8fc"/>
+  <text x="800" y="58" text-anchor="middle" class="title">Modelagem relacional — empresas e usuários</text>
+  <text x="800" y="91" text-anchor="middle" class="subtitle">Banco compartilhado com isolamento por empresa (tenant)</text>
+
+  <!-- Empresas table -->
+  <g filter="url(#shadow)">
+    <rect x="70" y="135" width="650" height="720" rx="12" fill="#ffffff" stroke="#cbd8e6" stroke-width="2"/>
+    <rect x="70" y="135" width="650" height="86" rx="12" fill="#1f5f8b"/>
+    <rect x="70" y="195" width="650" height="26" fill="#1f5f8b"/>
+    <text x="100" y="174" class="table-title">empresas</text>
+    <text x="100" y="202" class="table-subtitle">Imobiliária ou corretor autônomo</text>
+
+    <line x1="70" y1="270" x2="720" y2="270" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="70" y1="316" x2="720" y2="316" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="70" y1="362" x2="720" y2="362" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="70" y1="408" x2="720" y2="408" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="70" y1="454" x2="720" y2="454" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="70" y1="500" x2="720" y2="500" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="70" y1="546" x2="720" y2="546" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="70" y1="592" x2="720" y2="592" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="70" y1="638" x2="720" y2="638" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="70" y1="684" x2="720" y2="684" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="70" y1="730" x2="720" y2="730" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="70" y1="776" x2="720" y2="776" stroke="#dce5ef" stroke-width="1"/>
+
+    <rect x="88" y="237" width="38" height="24" rx="5" fill="#d99028"/><text x="107" y="255" text-anchor="middle" class="key">PK</text>
+    <text x="142" y="256" class="field">empresa_id</text><text x="480" y="256" class="type">BIGINT</text><text x="625" y="256" class="small">NOT NULL</text>
+
+    <text x="100" y="302" class="field">tipo_empresa</text><text x="480" y="302" class="type">VARCHAR(12)</text><text x="625" y="302" class="small">NOT NULL</text>
+    <text x="100" y="348" class="field">nome</text><text x="480" y="348" class="type">VARCHAR(150)</text><text x="625" y="348" class="small">NOT NULL</text>
+    <text x="100" y="394" class="field">razao_social</text><text x="480" y="394" class="type">VARCHAR(180)</text><text x="625" y="394" class="small">NULL</text>
+    <rect x="88" y="421" width="38" height="24" rx="5" fill="#5b7fa6"/><text x="107" y="439" text-anchor="middle" class="key">UQ</text>
+    <text x="142" y="440" class="field">documento</text><text x="480" y="440" class="type">VARCHAR(18)</text><text x="625" y="440" class="small">NOT NULL</text>
+    <text x="100" y="486" class="field">creci</text><text x="480" y="486" class="type">VARCHAR(30)</text><text x="625" y="486" class="small">NULL</text>
+    <text x="100" y="532" class="field">logomarca_url</text><text x="480" y="532" class="type">VARCHAR(500)</text><text x="625" y="532" class="small">NULL</text>
+    <text x="100" y="578" class="field">descricao</text><text x="480" y="578" class="type">TEXT</text><text x="625" y="578" class="small">NULL</text>
+    <text x="100" y="624" class="field">telefone / whatsapp</text><text x="480" y="624" class="type">VARCHAR(20)</text><text x="625" y="624" class="small">NULL</text>
+    <text x="100" y="670" class="field">email</text><text x="480" y="670" class="type">VARCHAR(254)</text><text x="625" y="670" class="small">NOT NULL</text>
+    <text x="100" y="716" class="field">logradouro / numero</text><text x="480" y="716" class="type">VARCHAR(180/20)</text><text x="625" y="716" class="small">NULL</text>
+    <text x="100" y="762" class="field">bairro / cep / uf</text><text x="480" y="762" class="type">VARCHAR/CHAR</text><text x="625" y="762" class="small">NULL</text>
+    <text x="100" y="808" class="field">ativa</text><text x="480" y="808" class="type">BOOLEAN</text><text x="625" y="808" class="small">DEFAULT TRUE</text>
+  </g>
+
+  <!-- Users table -->
+  <g filter="url(#shadow)">
+    <rect x="880" y="135" width="650" height="720" rx="12" fill="#ffffff" stroke="#cbd8e6" stroke-width="2"/>
+    <rect x="880" y="135" width="650" height="86" rx="12" fill="#2a7b62"/>
+    <rect x="880" y="195" width="650" height="26" fill="#2a7b62"/>
+    <text x="910" y="174" class="table-title">usuarios</text>
+    <text x="910" y="202" class="table-subtitle">Conta de acesso e perfil do sistema</text>
+
+    <line x1="880" y1="270" x2="1530" y2="270" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="880" y1="316" x2="1530" y2="316" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="880" y1="362" x2="1530" y2="362" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="880" y1="408" x2="1530" y2="408" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="880" y1="454" x2="1530" y2="454" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="880" y1="500" x2="1530" y2="500" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="880" y1="546" x2="1530" y2="546" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="880" y1="592" x2="1530" y2="592" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="880" y1="638" x2="1530" y2="638" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="880" y1="684" x2="1530" y2="684" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="880" y1="730" x2="1530" y2="730" stroke="#dce5ef" stroke-width="1"/>
+    <line x1="880" y1="776" x2="1530" y2="776" stroke="#dce5ef" stroke-width="1"/>
+
+    <rect x="898" y="237" width="38" height="24" rx="5" fill="#d99028"/><text x="917" y="255" text-anchor="middle" class="key">PK</text>
+    <text x="952" y="256" class="field">usuario_id</text><text x="1330" y="256" class="type">BIGINT</text><text x="1450" y="256" class="small">NOT NULL</text>
+
+    <rect x="898" y="283" width="38" height="24" rx="5" fill="#b65b55"/><text x="917" y="301" text-anchor="middle" class="key">FK</text>
+    <text x="952" y="302" class="field">empresa_id</text><text x="1330" y="302" class="type">BIGINT</text><text x="1450" y="302" class="small">NULL*</text>
+    <text x="900" y="348" class="field">nome</text><text x="1330" y="348" class="type">VARCHAR(150)</text><text x="1450" y="348" class="small">NOT NULL</text>
+    <rect x="898" y="375" width="38" height="24" rx="5" fill="#5b7fa6"/><text x="917" y="393" text-anchor="middle" class="key">UQ</text>
+    <text x="952" y="394" class="field">email</text><text x="1330" y="394" class="type">VARCHAR(254)</text><text x="1450" y="394" class="small">NOT NULL</text>
+    <text x="900" y="440" class="field">senha_hash</text><text x="1330" y="440" class="type">VARCHAR(255)</text><text x="1450" y="440" class="small">NOT NULL</text>
+    <text x="900" y="486" class="field">perfil</text><text x="1330" y="486" class="type">VARCHAR(15)</text><text x="1450" y="486" class="small">NOT NULL</text>
+    <text x="900" y="532" class="field">status</text><text x="1330" y="532" class="type">VARCHAR(10)</text><text x="1450" y="532" class="small">NOT NULL</text>
+    <text x="900" y="578" class="field">ultimo_acesso</text><text x="1330" y="578" class="type">TIMESTAMP</text><text x="1450" y="578" class="small">NULL</text>
+    <text x="900" y="624" class="field">criado_em</text><text x="1330" y="624" class="type">TIMESTAMP</text><text x="1450" y="624" class="small">NOT NULL</text>
+    <text x="900" y="670" class="field">atualizado_em</text><text x="1330" y="670" class="type">TIMESTAMP</text><text x="1450" y="670" class="small">NOT NULL</text>
+    <text x="900" y="716" class="field">perfil permitido</text><text x="1330" y="716" class="type">ENUM/CHECK</text><text x="1450" y="716" class="small">4 valores</text>
+    <text x="900" y="762" class="field">empresa_id obrigatório</text><text x="1330" y="762" class="type">CHECK</text><text x="1450" y="762" class="small">exceto ADMIN</text>
+    <text x="900" y="808" class="field">FK: empresas(empresa_id)</text><text x="1330" y="808" class="type">ON DELETE RESTRICT</text>
+  </g>
+
+  <!-- Relationship -->
+  <line x1="720" y1="425" x2="880" y2="425" stroke="#315a8a" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="800" y="402" text-anchor="middle" class="cardinality">1 : N</text>
+  <text x="800" y="451" text-anchor="middle" class="small">uma empresa possui vários usuários</text>
+  <text x="800" y="471" text-anchor="middle" class="small">um usuário pertence a uma empresa</text>
+
+  <!-- Notes -->
+  <g filter="url(#shadow)">
+    <rect x="70" y="875" width="1460" height="135" rx="12" fill="#ffffff" stroke="#cbd8e6" stroke-width="2"/>
+    <rect x="70" y="875" width="10" height="135" rx="5" fill="#d99028"/>
+    <text x="105" y="908" class="note-title">Regras de integridade e segurança</text>
+    <text x="105" y="938" class="note">• ADMINISTRADOR: empresa_id deve ser NULL. GESTOR, CORRETOR e CLIENTE: empresa_id é obrigatório.</text>
+    <text x="105" y="966" class="note">• Todos os dados do acervo devem possuir empresa_id e ser filtrados no servidor pelo tenant autenticado.</text>
+    <text x="105" y="994" class="note">• O JWT pode carregar usuario_id, perfil e empresa_id, mas o servidor deve validar esses dados antes de autorizar.</text>
+  </g>
+
+  <text x="800" y="1050" text-anchor="middle" class="small">Legenda: PK = chave primária  |  FK = chave estrangeira  |  UQ = valor único  |  NULL = opcional</text>
+</svg>
