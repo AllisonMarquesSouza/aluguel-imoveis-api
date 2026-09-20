@@ -1,0 +1,67 @@
+# O que é este projeto
+
+Desenvolver um marketplace de imóveis em duas frentes: um sistema web que mantém o acervo de cada imobiliária ou corretor autônomo, registra contratos e parcelas e publica a API; e um aplicativo que abre na vitrine da cidade do usuário, sem login, leva ao contato com o corretor pelo WhatsApp, e que — atrás do login — atende o corretor, o gestor da imobiliária e o cliente.
+
+## Como o sistema é composto
+
+Duas frentes construídas pela mesma equipe, sobre um banco de dados só.
+**Sistema web** — Onde roda: Navegador · O que contém: Site público com a vitrine de imóveis, aberto a qualquer um;
+ painel de gestão atrás do login, com empresas, corretores, proprietários, acervo, contratos, parcelas e documentos.
+  É também quem publica a API que o aplicativo consome
+
+**Aplicativo** — Onde roda: Celular · O que contém: Marketplace aberto, sem login: a vitrine da cidade,
+ o imóvel e o contato com o corretor. Atrás do login, as áreas do corretor, do gestor da imobiliária e do cliente
+
+## Três coisas precisam ficar claras desde o início, porque são as que costumam ser entendidas errado:
+
+1. O aplicativo é um só. Não são três aplicativos. É uma instalação, que abre direto na vitrine e onde o login
+ apenas revela a área do papel de quem entrou.
+2. A vitrine não pede login. Quem procura imóvel não cria conta: escolhe a cidade, olha, e fala com o corretor.
+ O login existe para quem trabalha e para quem já fechou contrato.
+3. A web é a dona da regra e do dado. O aplicativo é uma tela sobre a mesma informação. Nenhum cálculo
+que valha dinheiro — valor de parcela, situação de atraso, mudança de situação do imóvel — é decidido dentro do celular.
+
+## Quem usa
+
+- **Visitante** — Onde atua: App e site · Precisa de login?: Não · Responsabilidade: Escolhe a cidade,
+filtra a vitrine, abre o imóvel e fala com o corretor
+- **Corretor** — Onde atua: App e web · Precisa de login?: Sim · Responsabilidade: Mantém o seu acervo,
+ muda a situação dos imóveis e atende os contatos recebidos
+- **Gestor da imobiliária** — Onde atua: Web e app · Precisa de login?: Sim · Responsabilidade:
+ Cadastra os corretores, mantém o acervo da empresa, registra contratos
+  e parcelas e acompanha o que os corretores estão fazendo
+- **Cliente** — Onde atua: App · Precisa de login?: Sim · Responsabilidade:
+ Quem já fechou contrato: vê contratos, parcelas, pagamentos e o histórico dos contatos que fez
+- **Administrador** — Onde atua: Web · Precisa de login?: Sim · Responsabilidade:
+ Cadastra as empresas e mantém as tabelas gerais (cidades, características, tipos)
+
+## O que entregar em cada etapa
+
+- **E1** — Modelagem de dados, protótipo das telas e tecnologias escolhidas; na web, login, empresa,
+ corretores e o isolamento multitenant; no app, a navegação, a localização e a escolha da cidade
+- **E2** — Web: proprietários, imóvel com endereço e fotos, as quatro naturezas, loteamento com quadras e lotes,
+ publicação e o site público. App: vitrine com filtros, página do imóvel, contato pelo WhatsApp e favoritos
+- **E3** — Web: contrato, parcelas, baixa com comprovante e relatórios. App: área do corretor, área do gestor,
+ área do cliente e apresentação final
+
+## Como o trabalho é avaliado
+
+- Modelagem do acervo — quatro naturezas de imóvel, loteamento com quadras e lotes,
+e o isolamento entre empresas — 30%
+- Cobertura das funcionalidades obrigatórias nas duas frentes — 25%
+- Vitrine por cidade e contato funcionando igual no site e no aplicativo, com a regra no servidor — 20%
+- Usabilidade e qualidade das interfaces — 15%
+- Apresentação e documentação — 10%
+
+## O fluxo em um quadro
+
+Clique na imagem para abrir em tamanho cheio.
+
+## Como este quadro funciona
+
+- Todo card nasce no Backlog, sem responsável — e card sem responsável não anda.
+- Para entrar em Feito, todos os critérios de aceite do card precisam estar marcados.
+- Revisar, Analisando e Entregue são do professor. Do Revisar você pode puxar o card de volta para corrigir.
+- O prazo de cada card é o professor quem põe, conforme a etapa.
+- O infográfico do fluxo está aqui no card: clique nele para abrir em tamanho cheio.
+
