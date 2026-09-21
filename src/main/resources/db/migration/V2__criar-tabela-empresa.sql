@@ -3,7 +3,8 @@ CREATE TABLE empresa (
     tipo VARCHAR(12) NOT NULL,
     nome VARCHAR(150) NOT NULL,
     razao_social VARCHAR(180),
-    documento VARCHAR(18) NOT NULL UNIQUE, --CPF OU CNPJ
+    tipo_documento VARCHAR(4) NOT NULL,
+    documento VARCHAR(14) NOT NULL UNIQUE, --CPF OU CNPJ
     creci VARCHAR(30),
     logomarca_url VARCHAR(500),
     descricao TEXT,
@@ -18,6 +19,15 @@ CREATE TABLE empresa (
     ativa BOOLEAN NOT NULL DEFAULT TRUE,
     criado_em TIMESTAMP NOT NULL,
 
+    CONSTRAINT ck_empresa_tipo_documento
+        CHECK (tipo_documento IN ('CPF', 'CNPJ')),
+
+    CONSTRAINT ck_empresa_documento_tamanho
+        CHECK (
+            (tipo_documento = 'CPF' AND length(documento) = 11)
+                OR
+            (tipo_documento = 'CNPJ' AND length(documento) = 14)
+            ),
 
     CONSTRAINT fk_empresa_cidade_endereco
         FOREIGN KEY (cidade_id)
