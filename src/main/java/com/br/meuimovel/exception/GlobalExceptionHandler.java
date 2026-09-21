@@ -26,7 +26,29 @@ public class GlobalExceptionHandler {
 
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
+
+    @ExceptionHandler(EmpresaNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleEmpresaNotFoundException(EmpresaNotFoundException exception){
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.NOT_FOUND,
+                        LocalDateTime.now());
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+    @ExceptionHandler(EmpresaAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleEmpresaAlreadyExistsException(EmpresaAlreadyExistsException exception){
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.CONFLICT,
+                        LocalDateTime.now());
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+    @ExceptionHandler(DocumentoInvalidoException.class)
+    public ResponseEntity<ErrorResponse> handleDocumentoInvalidoException(DocumentoInvalidoException exception){
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.BAD_REQUEST,
+                        LocalDateTime.now());
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
 }
-//ErroResponse erroResponse = new ErroResponse(exception.getMessage(), HttpStatus.NOT_FOUND,
-//        LocalDateTime.now());
-//        return new ResponseEntity<>(erroResponse, HttpStatus.NOT_FOUND);

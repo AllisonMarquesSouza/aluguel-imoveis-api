@@ -1,7 +1,9 @@
 package com.br.meuimovel.model;
 
+import com.br.meuimovel.enums.TipoDocumento;
 import com.br.meuimovel.enums.TipoEmpresa;
 import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -9,6 +11,11 @@ import java.util.Set;
 
 @Entity
 @Table(name = "empresa")
+@Builder
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class Empresa {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -24,7 +31,11 @@ public class Empresa {
     @Column(name = "razao_social", length = 180)
     private String razaoSocial;
 
-    @Column(nullable = false, unique = true, length = 18)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_documento", nullable = false, length = 4)
+    private TipoDocumento tipoDocumento;
+
+    @Column(nullable = false, unique = true, length = 14)
     private String documento;
 
     @Column(length = 30)
