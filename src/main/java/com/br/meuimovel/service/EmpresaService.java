@@ -1,13 +1,16 @@
 package com.br.meuimovel.service;
 
-import com.br.meuimovel.dtos.EmpresaCreateDto;
-import com.br.meuimovel.dtos.EmpresaUpdateDto;
+import com.br.meuimovel.dtos.empresa.EmpresaCreateDto;
+import com.br.meuimovel.dtos.empresa.EmpresaUpdateDto;
+import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.exception.EmpresaAlreadyExistsException;
 import com.br.meuimovel.exception.EmpresaNotFoundException;
 import com.br.meuimovel.model.Cidade;
 import com.br.meuimovel.model.Empresa;
+import com.br.meuimovel.model.Usuario;
 import com.br.meuimovel.repository.EmpresaRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,11 +24,25 @@ public class EmpresaService {
     private final EmpresaRepository empresaRepository;
     private final CidadeService cidadeService;
 
-
     public Empresa getById(Integer id) {
-        return empresaRepository
+        Usuario usuario = (Usuario) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        Empresa empresa = empresaRepository
                 .findById(id)
-                .orElseThrow(() -> new EmpresaNotFoundException("Empresa nao encontrada!"));
+                .orElseThrow(() ->
+                        new EmpresaNotFoundException("Empresa não encontrada!"));
+
+        if (!empresa.getId().equals(usuario.getEmpresa().getId())
+                && usuario.getPerfil() != UsuarioPerfil.ADMINISTRADOR ) {
+            throw new RuntimeException(
+                    "Você não tem acesso a esta empresa."
+            );
+        }
+        //a ideia é que o ADMINISTRADOR consegue acessar dados de qualquer empresa
+        return empresa;
     }
 
     public List<Empresa> listAll() {

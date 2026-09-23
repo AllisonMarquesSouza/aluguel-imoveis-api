@@ -1,7 +1,7 @@
 package com.br.meuimovel.controller;
 
-import com.br.meuimovel.dtos.EmpresaCreateDto;
-import com.br.meuimovel.dtos.EmpresaUpdateDto;
+import com.br.meuimovel.dtos.empresa.EmpresaCreateDto;
+import com.br.meuimovel.dtos.empresa.EmpresaUpdateDto;
 import com.br.meuimovel.model.Empresa;
 import com.br.meuimovel.service.EmpresaService;
 import jakarta.validation.Valid;
@@ -17,7 +17,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EmpresaController {
     private final EmpresaService empresaService;
-
 
     @GetMapping
     public ResponseEntity<List<Empresa>> listAll(){
