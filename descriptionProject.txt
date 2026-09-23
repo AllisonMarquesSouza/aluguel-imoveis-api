@@ -65,3 +65,13 @@ Clique na imagem para abrir em tamanho cheio.
 - O prazo de cada card é o professor quem põe, conforme a etapa.
 - O infográfico do fluxo está aqui no card: clique nele para abrir em tamanho cheio.
 
+Como administrador, eu quero cadastrar as empresas e os usuários do sistema para que cada imobiliária
+ trabalhe no seu próprio acervo, sem enxergar o das outras.
+A empresa é a imobiliária ou o corretor autônomo — os dois entram na mesma tabela,
+ e o autônomo é empresa e corretor ao mesmo tempo. Ela tem razão social ou nome, CNPJ ou CPF, CRECI, logomarca,
+  descrição, telefone, WhatsApp, e-mail, endereço e as cidades onde atua.
+São quatro perfis: administrador, gestor, corretor e cliente. O administrador cadastra
+ as empresas e não pertence a nenhuma; os demais pertencem sempre a uma.
+Esta tarefa entrega também a base do isolamento multitenant, que é a regra que não se quebra no projeto:
+a empresa é coluna nas tabelas do acervo e nenhuma consulta do painel roda sem ela. Trocar o identificador na URL não pode abrir o dado de outra empresa.
+Tarefa W01 do documento de histórias.
