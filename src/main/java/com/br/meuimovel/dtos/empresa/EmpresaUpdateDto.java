@@ -1,4 +1,4 @@
-package com.br.meuimovel.dtos;
+package com.br.meuimovel.dtos.empresa;
 
 import com.br.meuimovel.enums.TipoDocumento;
 import com.br.meuimovel.enums.TipoEmpresa;
