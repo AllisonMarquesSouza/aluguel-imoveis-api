@@ -7,7 +7,6 @@ import com.br.meuimovel.dtos.autenticacao.UsuarioResponseDto;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
 import com.br.meuimovel.exception.UsuarioAlreadyExistsException;
-import com.br.meuimovel.exception.UsuarioNaoPodePossuirEmpresaException;
 import com.br.meuimovel.model.Empresa;
 import com.br.meuimovel.model.Usuario;
 import com.br.meuimovel.repository.UsuarioRepository;

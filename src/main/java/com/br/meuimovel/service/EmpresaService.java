@@ -9,6 +9,7 @@ import com.br.meuimovel.model.Cidade;
 import com.br.meuimovel.model.Empresa;
 import com.br.meuimovel.model.Usuario;
 import com.br.meuimovel.repository.EmpresaRepository;
+import com.br.meuimovel.validator.DocumentoValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,7 @@ import java.util.Set;
 public class EmpresaService {
     private final EmpresaRepository empresaRepository;
     private final CidadeService cidadeService;
+    private final DocumentoValidator documentoValidator;
 
     public Empresa getById(Integer id) {
         Usuario usuario = (Usuario) SecurityContextHolder
@@ -52,7 +54,11 @@ public class EmpresaService {
 
     @Transactional
     public Empresa create(EmpresaCreateDto createDto) {
-        if (empresaRepository.existsByDocumento(createDto.documento())) {
+        String documento = documentoValidator.validar(
+                createDto.tipoDocumento(),
+                createDto.documento()
+        );
+        if (empresaRepository.existsByDocumento(documento)) {
             throw new EmpresaAlreadyExistsException("Empresa com esse documento já existe, cheque o CNPJ OU CPF");
             //ver essa verificacao do CNPJ e CPF
         }
@@ -64,7 +70,7 @@ public class EmpresaService {
         Empresa empresa = Empresa.builder()
                 .tipo(createDto.tipo()).nome(createDto.nome()).razaoSocial(createDto.razaoSocial())
                 .tipoDocumento(createDto.tipoDocumento())
-                .documento(createDto.documento()).creci(createDto.creci())
+                .documento(documento).creci(createDto.creci())
                 .logoMarcaUrl(createDto.logoMarcaUrl()).descricao(createDto.descricao())
                 .telefone(createDto.telefone()).whatsapp(createDto.whatsapp())
                 .email(createDto.email()).logradouro(createDto.logradouro())
