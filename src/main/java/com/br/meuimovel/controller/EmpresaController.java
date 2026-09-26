@@ -1,6 +1,7 @@
 package com.br.meuimovel.controller;
 
-import com.br.meuimovel.dtos.empresa.EmpresaCreateDto;
+import com.br.meuimovel.dtos.empresa.EmpresaAutonomaCreateDto;
+import com.br.meuimovel.dtos.empresa.EmpresaImobiliariaCreateDto;
 import com.br.meuimovel.dtos.empresa.EmpresaUpdateDto;
 import com.br.meuimovel.model.Empresa;
 import com.br.meuimovel.service.EmpresaService;
@@ -28,8 +29,13 @@ public class EmpresaController {
     }
 
     @PostMapping
-    public ResponseEntity<Empresa> create(@RequestBody @Valid EmpresaCreateDto createDto){
-        return new ResponseEntity<>(empresaService.create(createDto), HttpStatus.CREATED);
+    public ResponseEntity<Empresa> createImobiliaria(@RequestBody @Valid EmpresaImobiliariaCreateDto createDto){
+        return new ResponseEntity<>(empresaService.createImobiliaria(createDto), HttpStatus.CREATED);
+    }
+
+    @PostMapping
+    public ResponseEntity<Empresa> createAutonoma(@RequestBody @Valid EmpresaAutonomaCreateDto createDto){
+        return new ResponseEntity<>(empresaService.createAutonoma(createDto), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
