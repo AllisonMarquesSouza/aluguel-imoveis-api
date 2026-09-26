@@ -1,20 +1,11 @@
 package com.br.meuimovel.dtos.empresa;
 
 import com.br.meuimovel.enums.TipoDocumento;
-import com.br.meuimovel.enums.TipoEmpresa;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.util.Set;
 
 public record EmpresaCreateDto(
-        @NotNull
-        TipoEmpresa tipo,
-
         @NotBlank
         @Size(max = 150)
         String nome,

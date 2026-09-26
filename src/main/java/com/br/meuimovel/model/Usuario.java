@@ -79,12 +79,6 @@ public class Usuario implements UserDetails {
         return List.of(new SimpleGrantedAuthority("ROLE_CLIENTE"));
     }
 
-    //apenas usuários ativos podem fazer login
-    @Override
-    public boolean isEnabled() {
-        return this.status == UsuarioStatus.ATIVO;
-    }
-
     @Override
     public String getPassword() {
         return this.senha;
