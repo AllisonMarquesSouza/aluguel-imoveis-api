@@ -28,12 +28,12 @@ public class EmpresaController {
         return ResponseEntity.ok(empresaService.getById(id));
     }
 
-    @PostMapping
+    @PostMapping("/imobiliaria")
     public ResponseEntity<Empresa> createImobiliaria(@RequestBody @Valid EmpresaImobiliariaCreateDto createDto){
         return new ResponseEntity<>(empresaService.createImobiliaria(createDto), HttpStatus.CREATED);
     }
 
-    @PostMapping
+    @PostMapping("/autonoma")
     public ResponseEntity<Empresa> createAutonoma(@RequestBody @Valid EmpresaAutonomaCreateDto createDto){
         return new ResponseEntity<>(empresaService.createAutonoma(createDto), HttpStatus.CREATED);
     }
