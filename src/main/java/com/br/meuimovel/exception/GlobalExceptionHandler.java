@@ -28,6 +28,13 @@ public class GlobalExceptionHandler {
                         LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
+    @ExceptionHandler(UnauthorizedOperationException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedOperationException(UnauthorizedOperationException exception) {
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.UNAUTHORIZED,
+                        LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+    }
 
     @ExceptionHandler(CidadeNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleCidadeNotFoundException(CidadeNotFoundException exception){
@@ -77,6 +84,20 @@ public class GlobalExceptionHandler {
                 (exception.getMessage(), HttpStatus.CONFLICT,
                         LocalDateTime.now());
 
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+    @ExceptionHandler(EmpresaInativaException.class)
+    public ResponseEntity<ErrorResponse> handleEmpresaInativaException(EmpresaInativaException exception){
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.CONFLICT,
+                        LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+    @ExceptionHandler(CreciAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleCreciAlreadyExistsException(CreciAlreadyExistsException exception){
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.CONFLICT,
+                        LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
