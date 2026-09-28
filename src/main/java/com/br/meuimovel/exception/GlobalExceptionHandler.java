@@ -101,9 +101,9 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
-    @ExceptionHandler(UsuarioNaoPodePossuirEmpresaException.class)
+    @ExceptionHandler(InvalidUsuarioRegistrationException.class)
     public ResponseEntity<ErrorResponse> handleUsuarioNaoPodePossuirEmpresaException
-            (UsuarioNaoPodePossuirEmpresaException exception){
+            (InvalidUsuarioRegistrationException exception){
         ErrorResponse errorResponse = new ErrorResponse
                 (exception.getMessage(), HttpStatus.CONFLICT,
                         LocalDateTime.now());
@@ -113,6 +113,23 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(DocumentoInvalidoException.class)
     public ResponseEntity<ErrorResponse> handleDocumentoInvalidoException(DocumentoInvalidoException exception){
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.BAD_REQUEST,
+                        LocalDateTime.now());
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+    @ExceptionHandler(FotoInvalidaException.class)
+    public ResponseEntity<ErrorResponse> handleFotoInvalidaException(FotoInvalidaException exception){
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.BAD_REQUEST,
+                        LocalDateTime.now());
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(FileStorageException.class)
+    public ResponseEntity<ErrorResponse> handleFileStorageException(FileStorageException exception){
         ErrorResponse errorResponse = new ErrorResponse
                 (exception.getMessage(), HttpStatus.BAD_REQUEST,
                         LocalDateTime.now());

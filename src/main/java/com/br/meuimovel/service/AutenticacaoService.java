@@ -6,6 +6,7 @@ import com.br.meuimovel.dtos.autenticacao.TokenDto;
 import com.br.meuimovel.dtos.autenticacao.UsuarioResponseDto;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
+import com.br.meuimovel.exception.InvalidUsuarioRegistrationException;
 import com.br.meuimovel.exception.UsuarioAlreadyExistsException;
 import com.br.meuimovel.model.Empresa;
 import com.br.meuimovel.model.Usuario;
@@ -58,7 +59,19 @@ public class AutenticacaoService{
 
         Empresa empresa = null;
 
-        if (dto.perfil() != UsuarioPerfil.ADMINISTRADOR) {
+        if (dto.perfil() == UsuarioPerfil.ADMINISTRADOR && dto.empresaId() != null) {
+            throw new InvalidUsuarioRegistrationException(
+                    "Um ADMINISTRADOR nao pode ser associado a uma empresa!"
+            );
+        }
+
+        if (dto.perfil() != UsuarioPerfil.ADMINISTRADOR && dto.empresaId() == null) {
+            throw new InvalidUsuarioRegistrationException(
+                    "Um " + dto.perfil() + " precisa estar associado a uma empresa!"
+            );
+        }
+
+        if (dto.perfil() != UsuarioPerfil.ADMINISTRADOR && dto.empresaId() != null) {
             empresa = empresaService.getById(dto.empresaId());
         }
 

@@ -19,10 +19,6 @@ public record CorretorCreateDto(
         String senha,
 
         @NotBlank
-        @Size(max = 500)
-        String fotoUrl,
-
-        @NotBlank
         @Size(max = 30)
         String creci,
 

@@ -12,14 +12,16 @@ import com.br.meuimovel.exception.UsuarioAlreadyExistsException;
 import com.br.meuimovel.model.Corretor;
 import com.br.meuimovel.model.Empresa;
 import com.br.meuimovel.model.Usuario;
-import com.br.meuimovel.repository.UsuarioRepository;
 import com.br.meuimovel.repository.CorretorRepository;
+import com.br.meuimovel.repository.UsuarioRepository;
+import com.br.meuimovel.validator.FotoValidator;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 
@@ -29,6 +31,8 @@ public class CorretorService {
     private final UsuarioRepository usuarioRepository;
     private final CorretorRepository corretorRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FotoValidator fotoValidator;
+    private final FileStorageService fileStorageService;
 
     private Usuario getGestorAutenticado(){
         Usuario gestor = (Usuario) SecurityContextHolder
@@ -44,7 +48,7 @@ public class CorretorService {
         return gestor;
     }
     @Transactional
-    public CorretorResponseDto create(CorretorCreateDto createDto) {
+    public CorretorResponseDto create(CorretorCreateDto createDto, MultipartFile foto) {
         Usuario gestor = getGestorAutenticado();
 
         if (!gestor.getEmpresa().isAtiva()) {
@@ -61,17 +65,23 @@ public class CorretorService {
             throw new UsuarioAlreadyExistsException("Usuário já cadastrado!");
         }
 
+        fotoValidator.validar(foto);
         String encodedSenha = passwordEncoder.encode(createDto.senha());
 
         Usuario usuario = usuarioRepository
                 .save(new Usuario(gestor.getEmpresa(), createDto.nome(), createDto.email(),
                         encodedSenha, UsuarioPerfil.CORRETOR, UsuarioStatus.ATIVO, LocalDateTime.now()
                 ));
+        String fotoUrl =
+                fileStorageService.salvarFotoCorretor(
+                        foto,
+                        usuario.getId()
+                );
         Corretor corretor = corretorRepository.save(new Corretor
-                (usuario, createDto.fotoUrl(), createDto.creci(), createDto.telefone(),
+                (usuario, fotoUrl, createDto.creci(), createDto.telefone(),
                         createDto.whatsapp(), createDto.apresentacao()));
-        //validar fotoUrl, por tipo e tamanho antes de gravar?
-        //perguntar e heldon sobre essa validaçao
+        //ajustar a verificacao caso salvar um corretor falhe, a imagem ainda estaria salva
+        //logo, dar um rollback na imagem tambem, o transactional nao funciona para ela.
 
         return CorretorResponseDto.builder()
                 .id(corretor.getId())

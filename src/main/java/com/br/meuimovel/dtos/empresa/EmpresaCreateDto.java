@@ -23,9 +23,6 @@ public record EmpresaCreateDto(
         @Size(max = 30)
         String creci,
 
-        @Size(max = 500)
-        String logoMarcaUrl,
-
         String descricao,
 
         @Size(max = 20)
