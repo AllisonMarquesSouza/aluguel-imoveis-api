@@ -6,11 +6,10 @@ import com.br.meuimovel.service.CorretorService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequiredArgsConstructor
@@ -18,8 +17,14 @@ import org.springframework.web.bind.annotation.RestController;
 public class CorretorController {
     private final CorretorService corretorService;
 
-    @PostMapping
-    public ResponseEntity<CorretorResponseDto> create(@RequestBody @Valid CorretorCreateDto createDto){
-        return new ResponseEntity<>(corretorService.create(createDto), HttpStatus.CREATED);
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<CorretorResponseDto> create(
+            @RequestPart("dto") @Valid CorretorCreateDto createDto,
+            @RequestPart("foto") MultipartFile foto
+    ) {
+        return new ResponseEntity<>(
+                corretorService.create(createDto, foto),
+                HttpStatus.CREATED
+        );
     }
 }
