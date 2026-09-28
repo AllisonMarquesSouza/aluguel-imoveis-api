@@ -8,8 +8,10 @@ import com.br.meuimovel.service.EmpresaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -28,20 +30,27 @@ public class EmpresaController {
         return ResponseEntity.ok(empresaService.getById(id));
     }
 
-    @PostMapping("/imobiliaria")
-    public ResponseEntity<Empresa> createImobiliaria(@RequestBody @Valid EmpresaImobiliariaCreateDto createDto){
-        return new ResponseEntity<>(empresaService.createImobiliaria(createDto), HttpStatus.CREATED);
+    @PostMapping(value = "/imobiliaria", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Empresa> createImobiliaria(@RequestPart("dto") @Valid EmpresaImobiliariaCreateDto createDto,
+                                                     @RequestPart("logoEmpresa") MultipartFile logoImg){
+        return new ResponseEntity<>(empresaService.createImobiliaria(createDto, logoImg), HttpStatus.CREATED);
     }
 
-    @PostMapping("/autonoma")
-    public ResponseEntity<Empresa> createAutonoma(@RequestBody @Valid EmpresaAutonomaCreateDto createDto){
-        return new ResponseEntity<>(empresaService.createAutonoma(createDto), HttpStatus.CREATED);
+    @PostMapping(value = "/autonoma", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Empresa> createAutonoma(@RequestPart("dto") @Valid EmpresaAutonomaCreateDto createDto,
+                                                     @RequestPart("logoEmpresa") MultipartFile logoImg,
+                                                     @RequestPart("fotoCorretor") MultipartFile fotoCorretor){
+        return new ResponseEntity<>(empresaService.createAutonoma(createDto, logoImg, fotoCorretor), HttpStatus.CREATED);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Void> update(@PathVariable Integer id, @RequestBody @Valid EmpresaUpdateDto updateDto){
-        empresaService.update(id, updateDto);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Void> update(
+            @PathVariable Integer id,
+            @RequestPart("dto") @Valid EmpresaUpdateDto updateDto,
+            @RequestPart(value = "logoEmpresa", required = false) MultipartFile logoImg
+    ) {
+        empresaService.update(id, updateDto, logoImg);
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/activate/{id}")

@@ -17,11 +17,13 @@ import com.br.meuimovel.repository.EmpresaRepository;
 import com.br.meuimovel.repository.GestorRepository;
 import com.br.meuimovel.repository.UsuarioRepository;
 import com.br.meuimovel.validator.DocumentoValidator;
+import com.br.meuimovel.validator.FotoValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,6 +39,9 @@ public class EmpresaService {
     private final UsuarioRepository usuarioRepository;
     private final CorretorRepository corretorRepository;
     private final GestorRepository gestorRepository;
+    private final FotoValidator fotoValidator;
+    private final FileStorageService fileStorageService;
+
 
     public Empresa getById(Integer id) {
         Usuario usuario = (Usuario) SecurityContextHolder
@@ -74,7 +79,7 @@ public class EmpresaService {
                 .tipo(tipoEmpresa).nome(empresa.nome()).razaoSocial(empresa.razaoSocial())
                 .tipoDocumento(empresa.tipoDocumento())
                 .documento(documento).creci(empresa.creci())
-                .logoMarcaUrl(empresa.logoMarcaUrl()).descricao(empresa.descricao())
+                .descricao(empresa.descricao())
                 .telefone(empresa.telefone()).whatsapp(empresa.whatsapp())
                 .email(empresa.email()).logradouro(empresa.logradouro())
                 .numero(empresa.numero()).bairro(empresa.bairro())
@@ -82,8 +87,9 @@ public class EmpresaService {
                 .ativa(true).criadoEm(LocalDateTime.now()).build());
     }
 
+
     @Transactional
-    public Empresa createImobiliaria(EmpresaImobiliariaCreateDto createDto) {
+    public Empresa createImobiliaria(EmpresaImobiliariaCreateDto createDto, MultipartFile logoImg) {
         String documento = documentoValidator.validar(
                 createDto.empresa().tipoDocumento(),
                 createDto.empresa().documento()
@@ -102,8 +108,15 @@ public class EmpresaService {
             );
         }
 
+        fotoValidator.validar(logoImg);
         String encodedSenha = passwordEncoder.encode(createDto.senhaGestor());
         Empresa empresa = criarEmpresa(documento, createDto.empresa(), TipoEmpresa.IMOBILIARIA);
+        String fotoUrl =
+                fileStorageService.salvarLogoEmpresa(
+                        logoImg,
+                        empresa.getId()
+                );
+        empresa.setLogoMarcaUrl(fotoUrl);
 
         Usuario usuario = usuarioRepository.save(
                 new Usuario(
@@ -121,7 +134,8 @@ public class EmpresaService {
     }
 
     @Transactional
-    public Empresa createAutonoma(EmpresaAutonomaCreateDto createDto) {
+    public Empresa createAutonoma(EmpresaAutonomaCreateDto createDto, MultipartFile logoImg,
+                                  MultipartFile fotoCorretor) {
         String documento = documentoValidator.validar(
                 createDto.empresa().tipoDocumento(),
                 createDto.empresa().documento()
@@ -139,8 +153,17 @@ public class EmpresaService {
                     "Creci já foi cadastrado, cheque novamente!"
             );
         }
+        fotoValidator.validar(logoImg);
+        fotoValidator.validar(fotoCorretor);
         String encodedSenha = passwordEncoder.encode(createDto.corretor().senha());
         Empresa empresa = criarEmpresa(documento, createDto.empresa(), TipoEmpresa.AUTONOMO);
+        String logoUrlEmpresa =
+                fileStorageService.salvarLogoEmpresa(
+                        logoImg,
+                        empresa.getId()
+                );
+
+        empresa.setLogoMarcaUrl(logoUrlEmpresa);
 
         Usuario usuario = usuarioRepository.save(
                 new Usuario(
@@ -153,54 +176,120 @@ public class EmpresaService {
                         LocalDateTime.now()
                 )
         );
-
+        String fotoCorretorUrl =
+                fileStorageService.salvarFotoCorretor(
+                        fotoCorretor,
+                        usuario.getId()
+                );
         corretorRepository.save(new Corretor
-                (usuario, createDto.corretor().fotoUrl(), createDto.corretor().creci(), createDto.corretor().telefone(),
+                (usuario, fotoCorretorUrl, createDto.corretor().creci(), createDto.corretor().telefone(),
                         createDto.corretor().whatsapp(), createDto.corretor().apresentacao()));
         return empresa;
     }
 
-    //criar outras versoes de updates individuais?
+
     @Transactional
-    public void update(Integer id, EmpresaUpdateDto updateDto) {
+    public void update(
+            Integer id,
+            EmpresaUpdateDto updateDto,
+            MultipartFile logoImg
+    ) {
         Empresa empresa = getById(id);
 
-        if (empresaRepository.existsByDocumento(updateDto.documento())
-                && !empresa.getDocumento().equals(updateDto.documento())) {
-            throw new EmpresaAlreadyExistsException(
-                    "Empresa com esse documento já existe, cheque o CNPJ OU CPF"
-            );
+        if (updateDto.tipo() != null) {
+            empresa.setTipo(updateDto.tipo());
         }
 
-        Cidade cidadeBase = updateDto.cidadeBaseId() == null
-                ? null
-                : cidadeService.getById(updateDto.cidadeBaseId());
-        Set<Cidade> cidades = cidadeService.getAllById(
-                updateDto.cidadesAtuacaoIds()
-        );
+        if (updateDto.nome() != null) {
+            empresa.setNome(updateDto.nome());
+        }
 
-        empresa.setTipo(updateDto.tipo());
-        empresa.setNome(updateDto.nome());
-        empresa.setRazaoSocial(updateDto.razaoSocial());
-        empresa.setTipoDocumento(updateDto.tipoDocumento());
-        empresa.setDocumento(updateDto.documento());
-        empresa.setCreci(updateDto.creci());
-        empresa.setLogoMarcaUrl(updateDto.logoMarcaUrl());
-        empresa.setDescricao(updateDto.descricao());
-        empresa.setTelefone(updateDto.telefone());
-        empresa.setWhatsapp(updateDto.whatsapp());
-        empresa.setEmail(updateDto.email());
-        empresa.setLogradouro(updateDto.logradouro());
-        empresa.setNumero(updateDto.numero());
-        empresa.setBairro(updateDto.bairro());
-        empresa.setCep(updateDto.cep());
-        empresa.setCidadeBase(cidadeBase);
-        empresa.getCidadesAtuacao().clear();
-        empresa.getCidadesAtuacao().addAll(cidades);
+        if (updateDto.razaoSocial() != null) {
+            empresa.setRazaoSocial(updateDto.razaoSocial());
+        }
+
+        if (updateDto.tipoDocumento() != null) {
+            empresa.setTipoDocumento(updateDto.tipoDocumento());
+        }
+
+        if (updateDto.documento() != null) {
+            if (empresaRepository.existsByDocumento(updateDto.documento())
+                    && !empresa.getDocumento().equals(updateDto.documento())) {
+
+                throw new EmpresaAlreadyExistsException(
+                        "Empresa com esse documento já existe, cheque o CNPJ OU CPF"
+                );
+            }
+
+            empresa.setDocumento(updateDto.documento());
+        }
+
+        if (updateDto.creci() != null) {
+            empresa.setCreci(updateDto.creci());
+        }
+
+        if (updateDto.descricao() != null) {
+            empresa.setDescricao(updateDto.descricao());
+        }
+
+        if (updateDto.telefone() != null) {
+            empresa.setTelefone(updateDto.telefone());
+        }
+
+        if (updateDto.whatsapp() != null) {
+            empresa.setWhatsapp(updateDto.whatsapp());
+        }
+
+        if (updateDto.email() != null) {
+            empresa.setEmail(updateDto.email());
+        }
+
+        if (updateDto.logradouro() != null) {
+            empresa.setLogradouro(updateDto.logradouro());
+        }
+
+        if (updateDto.numero() != null) {
+            empresa.setNumero(updateDto.numero());
+        }
+
+        if (updateDto.bairro() != null) {
+            empresa.setBairro(updateDto.bairro());
+        }
+
+        if (updateDto.cep() != null) {
+            empresa.setCep(updateDto.cep());
+        }
+
+        if (updateDto.cidadeBaseId() != null) {
+            Cidade cidadeBase = cidadeService.getById(
+                    updateDto.cidadeBaseId()
+            );
+
+            empresa.setCidadeBase(cidadeBase);
+        }
+
+        if (updateDto.cidadesAtuacaoIds() != null) {
+            Set<Cidade> cidades = cidadeService.getAllById(
+                    updateDto.cidadesAtuacaoIds()
+            );
+
+            empresa.getCidadesAtuacao().clear();
+            empresa.getCidadesAtuacao().addAll(cidades);
+        }
+
+        if (logoImg != null && !logoImg.isEmpty()) {
+            fotoValidator.validar(logoImg);
+
+            String logoUrl = fileStorageService.salvarLogoEmpresa(
+                    logoImg,
+                    empresa.getId()
+            );
+
+            empresa.setLogoMarcaUrl(logoUrl);
+        }
 
         empresaRepository.save(empresa);
     }
-
 
     @Transactional
     public void activate(Integer id) {
