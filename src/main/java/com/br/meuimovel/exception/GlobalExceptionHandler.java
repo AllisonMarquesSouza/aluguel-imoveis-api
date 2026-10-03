@@ -75,6 +75,15 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(CaracteristicaNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleCaracteristicaNotFoundException(CaracteristicaNotFoundException exception) {
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.NOT_FOUND,
+                        LocalDateTime.now());
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(CidadeAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleCidadeAlreadyExistsException(CidadeAlreadyExistsException exception) {
         ErrorResponse errorResponse = new ErrorResponse
@@ -95,6 +104,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(EmpresaAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleEmpresaAlreadyExistsException(EmpresaAlreadyExistsException exception) {
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.CONFLICT,
+                        LocalDateTime.now());
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(CaracteristicaAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleCaracteristicaAlreadyExistsException(CaracteristicaAlreadyExistsException exception) {
         ErrorResponse errorResponse = new ErrorResponse
                 (exception.getMessage(), HttpStatus.CONFLICT,
                         LocalDateTime.now());
