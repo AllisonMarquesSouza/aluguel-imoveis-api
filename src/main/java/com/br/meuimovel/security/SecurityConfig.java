@@ -36,6 +36,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/cidade").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.DELETE, "/cidade/{id}").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.POST, "/corretor").hasRole("GESTOR")
+                        .requestMatchers("/proprietario/**").hasRole("CORRETOR")
                         .anyRequest().authenticated())
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
