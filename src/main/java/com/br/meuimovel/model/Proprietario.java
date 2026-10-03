@@ -41,8 +41,3 @@ public class Proprietario {
     private String observacoes;
 
 }
-//tipo_documento VARCHAR(4)   NOT NULL,
-//documento      VARCHAR(14)  NOT NULL,
-//nome           VARCHAR(150) NOT NULL,
-//telefone       VARCHAR(20)  NOT NULL,
-//email          VARCHAR(255) NOT NULL,

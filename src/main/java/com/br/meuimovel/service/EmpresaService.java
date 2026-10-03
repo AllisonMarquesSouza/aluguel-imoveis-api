@@ -7,10 +7,7 @@ import com.br.meuimovel.dtos.empresa.EmpresaUpdateDto;
 import com.br.meuimovel.enums.TipoEmpresa;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
-import com.br.meuimovel.exception.CreciAlreadyExistsException;
-import com.br.meuimovel.exception.EmpresaAlreadyExistsException;
-import com.br.meuimovel.exception.EmpresaNotFoundException;
-import com.br.meuimovel.exception.UsuarioAlreadyExistsException;
+import com.br.meuimovel.exception.*;
 import com.br.meuimovel.model.*;
 import com.br.meuimovel.repository.CorretorRepository;
 import com.br.meuimovel.repository.EmpresaRepository;
@@ -56,11 +53,10 @@ public class EmpresaService {
 
         if (!empresa.getId().equals(usuario.getEmpresa().getId())
                 && usuario.getPerfil() != UsuarioPerfil.ADMINISTRADOR) {
-            throw new RuntimeException(
+            throw new UnauthorizedOperationException(
                     "Você não tem acesso a esta empresa."
             );
         }
-        //a ideia é que o ADMINISTRADOR consegue acessar dados de qualquer empresa
         return empresa;
     }
 
@@ -294,14 +290,14 @@ public class EmpresaService {
     @Transactional
     public void activate(Integer id) {
         Empresa empresa = getById(id);
-        if (empresa.isAtiva()) throw new RuntimeException("Empresa ja ativa");
+        if (empresa.isAtiva()) throw new EmpresaStatusAlreadyModifiedException("Empresa ja ativa");
         empresa.setAtiva(true);
     }
 
     @Transactional
     public void inactivate(Integer id) {
         Empresa empresa = getById(id);
-        if (!empresa.isAtiva()) throw new RuntimeException("Empresa ja desativada");
+        if (!empresa.isAtiva()) throw new EmpresaStatusAlreadyModifiedException("Empresa ja desativada");
         empresa.setAtiva(false);
     }
 
