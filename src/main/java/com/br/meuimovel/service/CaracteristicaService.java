@@ -1,6 +1,7 @@
 package com.br.meuimovel.service;
 
-import com.br.meuimovel.dtos.CaracteristicaCreateDto;
+import com.br.meuimovel.dtos.caracteristica.CaracteristicaCreateDto;
+import com.br.meuimovel.dtos.caracteristica.CaracteristicaResponseDto;
 import com.br.meuimovel.exception.CaracteristicaAlreadyExistsException;
 import com.br.meuimovel.exception.CaracteristicaNotFoundException;
 import com.br.meuimovel.model.Caracteristica;
@@ -16,23 +17,32 @@ import java.util.List;
 public class CaracteristicaService {
     private final CaracteristicaRepository caracteristicaRepository;
 
-    public Caracteristica getByNomeIgnoreCase(String nome){
+    public CaracteristicaResponseDto getByNomeIgnoreCase(String nome){
         String nomeWithoutSpaces = nome.trim();
-        return caracteristicaRepository.findByNomeIgnoreCase(nomeWithoutSpaces)
-                .orElseThrow(() -> new CaracteristicaNotFoundException("Caracteristica com o nome: "+nome+" nao encontrada!"));
+        Caracteristica caracteristica = caracteristicaRepository.findByNomeIgnoreCase(nomeWithoutSpaces)
+                .orElseThrow(() -> new CaracteristicaNotFoundException
+                        ("Caracteristica com o nome: " + nome + " nao encontrada!"));
+        return new CaracteristicaResponseDto(caracteristica.getId(), caracteristica.getNome());
     }
-    public List<Caracteristica> listAll(){
-        return caracteristicaRepository.findAll();
+
+    public List<CaracteristicaResponseDto> listAll(){
+        return caracteristicaRepository.findAll()
+                .stream()
+                .map(caracteristica -> new CaracteristicaResponseDto(
+                        caracteristica.getId(),
+                        caracteristica.getNome()
+                ))
+                .toList();
     }
 
     @Transactional
-    public Caracteristica create(CaracteristicaCreateDto createDto){
+    public CaracteristicaResponseDto create(CaracteristicaCreateDto createDto){
         String nome = createDto.nome().trim();
         if(caracteristicaRepository.existsByNomeIgnoreCase(nome)){
             throw new CaracteristicaAlreadyExistsException("Caracteristica com esse nome já existe!!");
         }
-        Caracteristica caracteristica = new Caracteristica(nome);
-        return caracteristicaRepository.save(caracteristica);
+        Caracteristica caracteristica = caracteristicaRepository.save(new Caracteristica(nome));
+        return new CaracteristicaResponseDto(caracteristica.getId(), caracteristica.getNome());
     }
 
     //pegar por nome ignore case

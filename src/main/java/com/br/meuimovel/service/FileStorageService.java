@@ -14,5 +14,11 @@ public interface FileStorageService {
             Integer usuarioId
     );
 
+    String salvarFotoImovel(
+            MultipartFile arquivo,
+            Integer imovelId,
+            Integer ordem
+    );
+
     void deletar(String caminho);
 }

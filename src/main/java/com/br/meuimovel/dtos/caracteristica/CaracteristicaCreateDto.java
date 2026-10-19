@@ -1,4 +1,4 @@
-package com.br.meuimovel.dtos;
+package com.br.meuimovel.dtos.caracteristica;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
