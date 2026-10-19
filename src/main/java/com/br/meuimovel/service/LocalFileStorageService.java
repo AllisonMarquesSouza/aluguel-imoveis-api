@@ -40,6 +40,19 @@ public class LocalFileStorageService implements FileStorageService {
         );
     }
 
+    @Override
+    public String salvarFotoImovel(
+            MultipartFile arquivo,
+            Integer imovelId,
+            Integer ordem
+    ) {
+        return salvar(
+                arquivo,
+                "imoveis/" + imovelId,
+                "foto-" + ordem
+        );
+    }
+
     private String salvar(
             MultipartFile arquivo,
             String diretorio,

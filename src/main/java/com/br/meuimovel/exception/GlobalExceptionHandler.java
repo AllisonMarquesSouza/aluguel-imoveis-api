@@ -75,6 +75,13 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(ImovelNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleImovelNotFoundException(ImovelNotFoundException exception) {
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.NOT_FOUND, LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(CaracteristicaNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleCaracteristicaNotFoundException(CaracteristicaNotFoundException exception) {
         ErrorResponse errorResponse = new ErrorResponse
@@ -142,6 +149,20 @@ public class GlobalExceptionHandler {
                 (exception.getMessage(), HttpStatus.CONFLICT,
                         LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(ImovelAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleImovelAlreadyExistsException(ImovelAlreadyExistsException exception) {
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.CONFLICT, LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(ImovelInvalidoException.class)
+    public ResponseEntity<ErrorResponse> handleImovelInvalidoException(ImovelInvalidoException exception) {
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.BAD_REQUEST, LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(EmpresaStatusAlreadyModifiedException.class)
