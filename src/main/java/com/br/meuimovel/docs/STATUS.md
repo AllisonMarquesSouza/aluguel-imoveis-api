@@ -34,8 +34,17 @@
 
 - [x] Implementação-base existente: proprietários, busca por nome/documento, cidades e características
 - [x] Validar documento e evitar duplicidade de proprietário dentro da empresa
-- [ ] Integrar características ao cadastro e atualização do imóvel
-- [ ] Revisar testes e critérios de aceitação pendentes
+- [x] Restringir operações de proprietário à empresa do corretor e retornar DTOs nas respostas
+- [x] Manter cidades e características por administradores e retornar cidades por DTO
+- [x] Associar características selecionadas ao cadastro do imóvel
+- [ ] Associar características à atualização do imóvel (não há endpoint de atualização; fora do escopo atual)
+- [x] Cobrir validação documental, duplicidade, autorização, catálogos e associação de características com testes unitários
+
+### Verificação
+
+- [x] Testes unitários de ProprietarioService (6), CidadeService (4), CaracteristicaService (5), DocumentoValidator (4), EmpresaService (30) e ImovelService (6): 55 testes passaram
+- [x] `git diff --check`
+- [ ] Teste de contexto do Spring não executado nesta validação
 
 ## W04 — Cadastro comum de imóveis
 
@@ -73,12 +82,12 @@
 - [x] Exigir endereço, cidade e coordenadas no cadastro
 - [x] Armazenar várias fotos, ordenar pela lista enviada e selecionar exatamente uma capa
 - [x] Implementar `POST /imovel`, `GET /imovel` e `GET /imovel/{id}`, com isolamento por empresa
-- [x] Criar testes unitários para preços, cadastro e fotos
+- [x] Criar testes unitários para preços, cadastro, características e fotos
 - [x] Cobrir os critérios de cadastro da W04
 
 ### Verificação
 
-- [x] Compilação Maven e testes unitários de `ImovelService` (3 testes)
+- [x] Compilação Maven e testes unitários de `ImovelService` (6 testes)
 - [ ] Teste de contexto (`MeuImovelApplicationTests.contextLoads`) — o PostgreSQL local rejeitou as credenciais configuradas (SQLSTATE 28P01)
 
 ### Fora do escopo atual
