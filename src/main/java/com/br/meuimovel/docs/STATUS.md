@@ -19,10 +19,16 @@
 ## W02 — Cadastro de corretores
 
 - [x] Implementação-base existente: cadastro, vínculo com empresa e validação de foto
-- [ ] Expor ativação e desativação de corretores pela API
-- [ ] Disponibilizar perfil público do corretor e dados da empresa
-- [ ] Garantir o efeito do status inativo sobre vitrine e contato
-- [ ] Revisar testes e critérios de aceitação pendentes
+- [x] Expor ativação e desativação de corretores pela API, restritas a gestores da própria empresa
+- [x] Disponibilizar listagem e perfil público do corretor com dados públicos da empresa
+- [x] Ocultar corretores inativos da listagem e do perfil público, incluindo seus contatos
+- [x] Cobrir cadastro, autorização, isolamento por empresa, transições de status e perfil público com testes unitários
+
+### Verificação
+
+- [x] Testes unitários de CorretorService, EmpresaService, ProprietarioService e ImovelService: 49 testes passaram
+- [x] `git diff --check`
+- [ ] Teste de contexto do Spring não executado nesta validação
 
 ## W03 — Proprietários e características
 
