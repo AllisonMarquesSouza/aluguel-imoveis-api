@@ -1,6 +1,7 @@
 package com.br.meuimovel.service;
 
 import com.br.meuimovel.dtos.proprietario.ProprietarioCreateDto;
+import com.br.meuimovel.dtos.proprietario.ProprietarioResponseDto;
 import com.br.meuimovel.enums.TipoDocumento;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
@@ -13,6 +14,7 @@ import com.br.meuimovel.model.Usuario;
 import com.br.meuimovel.repository.ProprietarioRepository;
 import com.br.meuimovel.validator.DocumentoValidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,34 +28,38 @@ public class ProprietarioService {
     private final DocumentoValidator documentoValidator;
 
 
-    private Usuario getCorretorAutenticado(){
-        Usuario corretor = (Usuario) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
-
-        if (corretor.getPerfil() != UsuarioPerfil.CORRETOR || corretor.getStatus() != UsuarioStatus.ATIVO) {
+    private Usuario getCorretorAutenticado() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof Usuario corretor)
+                || corretor.getPerfil() != UsuarioPerfil.CORRETOR
+                || corretor.getStatus() != UsuarioStatus.ATIVO
+                || corretor.getEmpresa() == null) {
             throw new UnauthorizedOperationException("Para processar essa operacao" +
                     " precisa ser um corretor e estar ativo!");
         }
         return corretor;
     }
 
-    public Proprietario getByDocumento(TipoDocumento tipoDocumento, String documento){
+    public ProprietarioResponseDto getByDocumento(TipoDocumento tipoDocumento, String documento){
         String documentoValid = documentoValidator.validar(tipoDocumento, documento);
         Integer empresaId = getCorretorAutenticado().getEmpresa().getId();
-        return proprietarioRepository.findByEmpresaIdAndDocumento(empresaId, documentoValid)
+        Proprietario proprietario = proprietarioRepository.findByEmpresaIdAndDocumento(empresaId, documentoValid)
                 .orElseThrow(() -> new ProprietarioNotFoundException(
                                 "Proprietarico com documento : "+ documento +" nao encontrado!"));
+        return toResponse(proprietario);
     }
 
-    public List<Proprietario> listByNome(String nome){
+    public List<ProprietarioResponseDto> listByNome(String nome){
         Integer empresaId = getCorretorAutenticado().getEmpresa().getId();
-        return proprietarioRepository.findByEmpresaIdAndNomeContainingIgnoreCase(empresaId, nome);
+        return proprietarioRepository.findByEmpresaIdAndNomeContainingIgnoreCase(empresaId, nome)
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @Transactional
-    public Proprietario create(ProprietarioCreateDto createDto){
+    public ProprietarioResponseDto create(ProprietarioCreateDto createDto){
         Usuario corretor = getCorretorAutenticado();
         Empresa empresa = corretor.getEmpresa();
 
@@ -74,7 +80,15 @@ public class ProprietarioService {
                 .observacoes(createDto.observacoes())
                 .build();
 
-        return proprietarioRepository.save(proprietario);
+        return toResponse(proprietarioRepository.save(proprietario));
+    }
+
+    private ProprietarioResponseDto toResponse(Proprietario proprietario) {
+        return new ProprietarioResponseDto(
+                proprietario.getId(), proprietario.getTipoDocumento(), proprietario.getDocumento(),
+                proprietario.getNome(), proprietario.getTelefone(), proprietario.getEmail(),
+                proprietario.getObservacoes()
+        );
     }
 
 }
