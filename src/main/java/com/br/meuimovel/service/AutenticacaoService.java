@@ -7,6 +7,7 @@ import com.br.meuimovel.dtos.autenticacao.UsuarioResponseDto;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
 import com.br.meuimovel.exception.InvalidUsuarioRegistrationException;
+import com.br.meuimovel.exception.UnauthorizedOperationException;
 import com.br.meuimovel.exception.UsuarioAlreadyExistsException;
 import com.br.meuimovel.model.Empresa;
 import com.br.meuimovel.model.Usuario;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,7 +34,6 @@ public class AutenticacaoService{
     private final EmpresaService empresaService;
 
     public TokenDto login(AutenticacaoDto authDto) {
-
         var userPassword =
                 new UsernamePasswordAuthenticationToken(
                         authDto.email(),
@@ -49,8 +50,20 @@ public class AutenticacaoService{
         return new TokenDto(token);
     }
 
+    private void exigirAdministrador() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof Usuario usuario)
+                || !usuario.isEnabled()
+                || usuario.getPerfil() != UsuarioPerfil.ADMINISTRADOR) {
+            throw new UnauthorizedOperationException("A operação exige perfil de administrador.");
+        }
+    }
+
     @Transactional
     public UsuarioResponseDto register(RegisterDto dto) {
+        exigirAdministrador();
+
         if (usuarioRepository.existsByEmail(dto.email())) {
             throw new UsuarioAlreadyExistsException(
                     "Usuário já cadastrado"
