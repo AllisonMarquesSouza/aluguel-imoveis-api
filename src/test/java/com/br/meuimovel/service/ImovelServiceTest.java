@@ -9,6 +9,7 @@ import com.br.meuimovel.enums.Uf;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
 import com.br.meuimovel.exception.ImovelInvalidoException;
+import com.br.meuimovel.exception.ImovelNotFoundException;
 import com.br.meuimovel.model.*;
 import com.br.meuimovel.repository.*;
 import com.br.meuimovel.validator.FotoValidator;
@@ -130,6 +131,27 @@ class ImovelServiceTest {
         assertEquals(List.of(false, true), response.fotos().stream().map(foto -> foto.capa()).toList());
         verify(fileStorageService).salvarFotoImovel(arquivos.get(0), 42, 1);
         verify(fileStorageService).salvarFotoImovel(arquivos.get(1), 42, 2);
+    }
+
+    @Test
+    void getByIdScopesLookupToAuthenticatedCompany() {
+        Usuario usuario = autenticarCorretor();
+        when(imovelRepository.findByIdAndEmpresa_Id(42, usuario.getEmpresa().getId()))
+                .thenReturn(Optional.empty());
+
+        assertThrows(ImovelNotFoundException.class, () -> imovelService.getById(42));
+
+        verify(imovelRepository).findByIdAndEmpresa_Id(42, usuario.getEmpresa().getId());
+    }
+
+    @Test
+    void listByEmpresaUsesAuthenticatedCompany() {
+        Usuario usuario = autenticarCorretor();
+        when(imovelRepository.findAllByEmpresa_Id(usuario.getEmpresa().getId())).thenReturn(List.of());
+
+        assertTrue(imovelService.listByEmpresa().isEmpty());
+
+        verify(imovelRepository).findAllByEmpresa_Id(usuario.getEmpresa().getId());
     }
 
     private Usuario autenticarCorretor() {
