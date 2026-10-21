@@ -1,13 +1,20 @@
 # Status do projeto
 
-> Atualizado em 19/10/2026. Consulte os requisitos e a arquitetura para o detalhamento das regras de negócio e do banco.
+> Atualizado em 21/10/2026. Consulte os requisitos e a arquitetura para o detalhamento das regras de negócio e do banco.
 
 ## W01 — Empresa e usuários
 
 - [x] Implementação-base existente: cadastro, login/JWT, perfis e empresas
-- [ ] Completar e verificar o isolamento multitenant nas operações do sistema
-- [ ] Revisar autenticação/autorização para usuários inativos ou bloqueados
-- [ ] Revisar testes e critérios de aceitação pendentes
+- [x] Isolar consultas por empresa e impedir leitura de empresa de outro tenant por ID
+- [x] Limitar listagem de empresas e cadastro de usuários a administradores
+- [ ] Revisar autenticação conforme status ativo/inativo/bloqueado (adiado)
+- [x] Cobrir isolamento por empresa com testes unitários
+
+### Verificação
+
+- [x] Testes de EmpresaService (30), ProprietarioService e ImovelService (7): 37 testes passaram
+- [x] `git diff --check`
+- [ ] Teste integrado de contexto: pendente nesta validação; a configuração local do PostgreSQL rejeita as credenciais (`SQLSTATE 28P01`, ver verificação da W04)
 
 ## W02 — Cadastro de corretores
 
