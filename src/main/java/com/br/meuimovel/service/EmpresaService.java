@@ -1,8 +1,10 @@
 package com.br.meuimovel.service;
 
+import com.br.meuimovel.dtos.CidadeResponseDto;
 import com.br.meuimovel.dtos.empresa.EmpresaAutonomaCreateDto;
 import com.br.meuimovel.dtos.empresa.EmpresaCreateDto;
 import com.br.meuimovel.dtos.empresa.EmpresaImobiliariaCreateDto;
+import com.br.meuimovel.dtos.empresa.EmpresaResponseDto;
 import com.br.meuimovel.dtos.empresa.EmpresaUpdateDto;
 import com.br.meuimovel.enums.TipoEmpresa;
 import com.br.meuimovel.enums.UsuarioPerfil;
@@ -16,6 +18,7 @@ import com.br.meuimovel.repository.UsuarioRepository;
 import com.br.meuimovel.validator.DocumentoValidator;
 import com.br.meuimovel.validator.FotoValidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -39,29 +43,31 @@ public class EmpresaService {
     private final FotoValidator fotoValidator;
     private final FileStorageService fileStorageService;
 
-
     public Empresa getById(Integer id) {
-        Usuario usuario = (Usuario) SecurityContextHolder
-                .getContext()
-                .getAuthentication()
-                .getPrincipal();
+        Usuario usuario = getUsuarioAutenticado();
 
-        Empresa empresa = empresaRepository
-                .findById(id)
-                .orElseThrow(() ->
-                        new EmpresaNotFoundException("Empresa não encontrada!"));
-
-        if (!empresa.getId().equals(usuario.getEmpresa().getId())
-                && usuario.getPerfil() != UsuarioPerfil.ADMINISTRADOR) {
-            throw new UnauthorizedOperationException(
-                    "Você não tem acesso a esta empresa."
-            );
+        if (usuario.getPerfil() != UsuarioPerfil.ADMINISTRADOR) {
+            Integer empresaId = usuario.getEmpresa() == null ? null : usuario.getEmpresa().getId();
+            if (!Objects.equals(id, empresaId)) {
+                throw new EmpresaNotFoundException("Empresa não encontrada!");
+            }
         }
-        return empresa;
+
+        return empresaRepository.findById(id)
+                .orElseThrow(() -> new EmpresaNotFoundException("Empresa não encontrada!"));
     }
 
-    public List<Empresa> listAll() {
-        return empresaRepository.findAll();
+    @Transactional(readOnly = true)
+    public EmpresaResponseDto getResponseById(Integer id) {
+        return toResponse(getById(id));
+    }
+
+    @Transactional(readOnly = true)
+    public List<EmpresaResponseDto> listAll() {
+        getAdministradorAutenticado();
+        return empresaRepository.findAll().stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     private Empresa criarEmpresa(String documento, EmpresaCreateDto empresa, TipoEmpresa tipoEmpresa) {
@@ -85,7 +91,8 @@ public class EmpresaService {
 
 
     @Transactional
-    public Empresa createImobiliaria(EmpresaImobiliariaCreateDto createDto, MultipartFile logoImg) {
+    public EmpresaResponseDto createImobiliaria(EmpresaImobiliariaCreateDto createDto, MultipartFile logoImg) {
+        getAdministradorAutenticado();
         String documento = documentoValidator.validar(
                 createDto.empresa().tipoDocumento(),
                 createDto.empresa().documento()
@@ -126,12 +133,13 @@ public class EmpresaService {
                 )
         );
         gestorRepository.save(new Gestor(usuario));
-        return empresa;
+        return toResponse(empresa);
     }
 
     @Transactional
-    public Empresa createAutonoma(EmpresaAutonomaCreateDto createDto, MultipartFile logoImg,
-                                  MultipartFile fotoCorretor) {
+    public EmpresaResponseDto createAutonoma(EmpresaAutonomaCreateDto createDto, MultipartFile logoImg,
+                                             MultipartFile fotoCorretor) {
+        getAdministradorAutenticado();
         String documento = documentoValidator.validar(
                 createDto.empresa().tipoDocumento(),
                 createDto.empresa().documento()
@@ -180,7 +188,7 @@ public class EmpresaService {
         corretorRepository.save(new Corretor
                 (usuario, fotoCorretorUrl, createDto.corretor().creci(), createDto.corretor().telefone(),
                         createDto.corretor().whatsapp(), createDto.corretor().apresentacao()));
-        return empresa;
+        return toResponse(empresa);
     }
 
 
@@ -289,6 +297,7 @@ public class EmpresaService {
 
     @Transactional
     public void activate(Integer id) {
+        getAdministradorAutenticado();
         Empresa empresa = getById(id);
         if (empresa.isAtiva()) throw new EmpresaStatusAlreadyModifiedException("Empresa ja ativa");
         empresa.setAtiva(true);
@@ -296,6 +305,7 @@ public class EmpresaService {
 
     @Transactional
     public void inactivate(Integer id) {
+        getAdministradorAutenticado();
         Empresa empresa = getById(id);
         if (!empresa.isAtiva()) throw new EmpresaStatusAlreadyModifiedException("Empresa ja desativada");
         empresa.setAtiva(false);
@@ -303,7 +313,50 @@ public class EmpresaService {
 
     @Transactional
     public void deleteById(Integer id) {
+        getAdministradorAutenticado();
         getById(id);
         empresaRepository.deleteById(id);
+    }
+
+    private Usuario getUsuarioAutenticado() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof Usuario usuario)) {
+            throw new UnauthorizedOperationException("Usuário não autorizado.");
+        }
+        return usuario;
+    }
+
+    private Usuario getAdministradorAutenticado() {
+        Usuario usuario = getUsuarioAutenticado();
+        if (usuario.getPerfil() != UsuarioPerfil.ADMINISTRADOR) {
+            throw new UnauthorizedOperationException("A operação exige perfil de administrador.");
+        }
+        return usuario;
+    }
+
+    private EmpresaResponseDto toResponse(Empresa empresa) {
+        CidadeResponseDto cidadeBase = empresa.getCidadeBase() == null
+                ? null
+                : toCidadeResponse(empresa.getCidadeBase());
+
+        List<CidadeResponseDto> cidadesAtuacao = empresa.getCidadesAtuacao() == null
+                ? List.of()
+                : empresa.getCidadesAtuacao().stream()
+                        .map(this::toCidadeResponse)
+                        .toList();
+
+        return new EmpresaResponseDto(
+                empresa.getId(), empresa.getTipo(), empresa.getNome(), empresa.getRazaoSocial(),
+                empresa.getTipoDocumento(), empresa.getDocumento(), empresa.getCreci(),
+                empresa.getLogoMarcaUrl(), empresa.getDescricao(), empresa.getTelefone(),
+                empresa.getWhatsapp(), empresa.getEmail(), empresa.getLogradouro(), empresa.getNumero(),
+                empresa.getBairro(), empresa.getCep(), cidadeBase, cidadesAtuacao,
+                empresa.isAtiva(), empresa.getCriadoEm()
+        );
+    }
+
+    private CidadeResponseDto toCidadeResponse(Cidade cidade) {
+        return new CidadeResponseDto(cidade.getId(), cidade.getNome(), cidade.getUf().name());
     }
 }
