@@ -3,6 +3,7 @@ package com.br.meuimovel.service;
 import com.br.meuimovel.dtos.imovel.EnderecoImovelDto;
 import com.br.meuimovel.dtos.imovel.ImovelCreateDto;
 import com.br.meuimovel.dtos.imovel.ImovelResponseDto;
+import com.br.meuimovel.dtos.caracteristica.CaracteristicaResponseDto;
 import com.br.meuimovel.enums.FinalidadeImovel;
 import com.br.meuimovel.enums.TipoDocumento;
 import com.br.meuimovel.enums.Uf;
@@ -10,6 +11,7 @@ import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
 import com.br.meuimovel.exception.ImovelInvalidoException;
 import com.br.meuimovel.exception.ImovelNotFoundException;
+import com.br.meuimovel.exception.CaracteristicaNotFoundException;
 import com.br.meuimovel.model.*;
 import com.br.meuimovel.repository.*;
 import com.br.meuimovel.validator.FotoValidator;
@@ -77,7 +79,7 @@ class ImovelServiceTest {
     }
 
     @Test
-    void createSavesPhotosInOrderAndMarksSelectedCover() {
+    void createAssociatesSelectedCharacteristicsAndSavesPhotosInOrderWithCover() {
         Usuario usuario = autenticarCorretor();
         Empresa empresa = usuario.getEmpresa();
         Proprietario proprietario = Proprietario.builder()
@@ -94,12 +96,15 @@ class ImovelServiceTest {
         corretor.setId(usuario.getId());
         Cidade cidade = new Cidade("Recife", Uf.PE);
         cidade.setId(20);
+        Caracteristica caracteristica = new Caracteristica("Piscina");
+        caracteristica.setId(30);
 
         when(imovelRepository.existsByEmpresa_IdAndCodigo(empresa.getId(), "IM-1")).thenReturn(false);
         when(corretorRepository.findById(usuario.getId())).thenReturn(Optional.of(corretor));
         when(proprietarioRepository.findByIdAndEmpresa_Id(15, empresa.getId())).thenReturn(Optional.of(proprietario));
         when(cidadeRepository.findById(20)).thenReturn(Optional.of(cidade));
         when(empresaRepository.atuaNaCidade(empresa.getId(), 20)).thenReturn(true);
+        when(caracteristicaRepository.findAllById(Set.of(30))).thenReturn(List.of(caracteristica));
         when(imovelRepository.save(any(Imovel.class))).thenAnswer(invocation -> {
             Imovel imovel = invocation.getArgument(0);
             imovel.setId(42);
@@ -122,15 +127,42 @@ class ImovelServiceTest {
                 foto("frente.jpg"),
                 foto("sala.jpg")
         );
-        ImovelCreateDto dto = dto(FinalidadeImovel.VENDA, BigDecimal.valueOf(100_000), null, 2);
+        ImovelCreateDto dto = dto(FinalidadeImovel.VENDA, BigDecimal.valueOf(100_000), null, 2, Set.of(30));
 
         ImovelResponseDto response = imovelService.create(dto, new ArrayList<>(arquivos));
 
+        assertEquals(Set.of(new CaracteristicaResponseDto(30, "Piscina")), response.caracteristicas());
         assertEquals(2, response.fotos().size());
         assertEquals(List.of(1, 2), response.fotos().stream().map(foto -> foto.ordem()).toList());
         assertEquals(List.of(false, true), response.fotos().stream().map(foto -> foto.capa()).toList());
         verify(fileStorageService).salvarFotoImovel(arquivos.get(0), 42, 1);
         verify(fileStorageService).salvarFotoImovel(arquivos.get(1), 42, 2);
+    }
+
+    @Test
+    void createRejectsCharacteristicIdsThatDoNotExist() {
+        Usuario usuario = autenticarCorretor();
+        Empresa empresa = usuario.getEmpresa();
+        Corretor corretor = new Corretor(usuario, "/foto-corretor.jpg", "CRECI-1", "81999999999",
+                "81999999999", "Apresentação");
+        corretor.setId(usuario.getId());
+        Proprietario proprietario = Proprietario.builder()
+                .id(15).empresa(empresa).tipoDocumento(TipoDocumento.CPF).documento("52998224725")
+                .nome("Ana Souza").telefone("81999999999").email("ana@example.com").build();
+        Cidade cidade = new Cidade("Recife", Uf.PE);
+        cidade.setId(20);
+        when(imovelRepository.existsByEmpresa_IdAndCodigo(empresa.getId(), "IM-1")).thenReturn(false);
+        when(corretorRepository.findById(usuario.getId())).thenReturn(Optional.of(corretor));
+        when(proprietarioRepository.findByIdAndEmpresa_Id(15, empresa.getId())).thenReturn(Optional.of(proprietario));
+        when(cidadeRepository.findById(20)).thenReturn(Optional.of(cidade));
+        when(empresaRepository.atuaNaCidade(empresa.getId(), 20)).thenReturn(true);
+        when(caracteristicaRepository.findAllById(Set.of(999))).thenReturn(List.of());
+
+        assertThrows(CaracteristicaNotFoundException.class, () -> imovelService.create(
+                dto(FinalidadeImovel.VENDA, BigDecimal.valueOf(100_000), null, 1, Set.of(999)),
+                List.of(foto("frente.jpg"))));
+
+        verify(imovelRepository, never()).save(any(Imovel.class));
     }
 
     @Test
@@ -166,11 +198,16 @@ class ImovelServiceTest {
 
     private ImovelCreateDto dto(FinalidadeImovel finalidade, BigDecimal valorVenda,
                                 BigDecimal valorAluguel, Integer fotoCapaOrdem) {
+        return dto(finalidade, valorVenda, valorAluguel, fotoCapaOrdem, Set.of());
+    }
+
+    private ImovelCreateDto dto(FinalidadeImovel finalidade, BigDecimal valorVenda,
+                                BigDecimal valorAluguel, Integer fotoCapaOrdem, Set<Integer> caracteristicasIds) {
         EnderecoImovelDto endereco = new EnderecoImovelDto(
                 "50000000", "Rua Exemplo", "10", null, "Centro", 20,
                 BigDecimal.valueOf(-8.05), BigDecimal.valueOf(-34.9));
         return new ImovelCreateDto("IM-1", "Imóvel de teste", 15, finalidade,
-                valorVenda, valorAluguel, null, null, "Descrição", endereco, Set.of(), fotoCapaOrdem);
+                valorVenda, valorAluguel, null, null, "Descrição", endereco, caracteristicasIds, fotoCapaOrdem);
     }
 
     private MockMultipartFile foto(String nome) {
