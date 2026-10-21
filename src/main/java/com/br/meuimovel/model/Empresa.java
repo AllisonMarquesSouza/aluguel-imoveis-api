@@ -84,6 +84,7 @@ public class Empresa {
                     referencedColumnName = "id"
             )
     )
+    @Builder.Default
     private Set<Cidade> cidadesAtuacao = new HashSet<>();
 
     @Column(nullable = false)

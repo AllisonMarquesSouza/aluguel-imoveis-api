@@ -75,6 +75,13 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(CorretorNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleCorretorNotFoundException(CorretorNotFoundException exception) {
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.NOT_FOUND, LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(ImovelNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleImovelNotFoundException(ImovelNotFoundException exception) {
         ErrorResponse errorResponse = new ErrorResponse
@@ -170,6 +177,14 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = new ErrorResponse
                 (exception.getMessage(), HttpStatus.CONFLICT,
                         LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(CorretorStatusAlreadyModifiedException.class)
+    public ResponseEntity<ErrorResponse> handleCorretorStatusAlreadyModifiedException(
+            CorretorStatusAlreadyModifiedException exception) {
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.CONFLICT, LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 

@@ -1,7 +1,7 @@
 package com.br.meuimovel.controller;
 
 import com.br.meuimovel.dtos.CidadeCreateDto;
-import com.br.meuimovel.model.Cidade;
+import com.br.meuimovel.dtos.CidadeResponseDto;
 import com.br.meuimovel.service.CidadeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,16 +18,16 @@ public class CidadeController {
     private final CidadeService cidadeService;
 
     @GetMapping
-    public ResponseEntity<List<Cidade>> listAll(){
+    public ResponseEntity<List<CidadeResponseDto>> listAll(){
         return ResponseEntity.ok(cidadeService.listAll());
     }
     @GetMapping("/{id}")
-    public ResponseEntity<Cidade> getById(@PathVariable Integer id){
-        return ResponseEntity.ok(cidadeService.getById(id));
+    public ResponseEntity<CidadeResponseDto> getById(@PathVariable Integer id){
+        return ResponseEntity.ok(cidadeService.getResponseById(id));
     }
 
     @PostMapping
-    public ResponseEntity<Cidade> create(@RequestBody @Valid CidadeCreateDto createDto){
+    public ResponseEntity<CidadeResponseDto> create(@RequestBody @Valid CidadeCreateDto createDto){
         return new ResponseEntity<>(cidadeService.create(createDto), HttpStatus.CREATED);
     }
 
@@ -36,5 +36,6 @@ public class CidadeController {
         cidadeService.delete(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
+
 
 }

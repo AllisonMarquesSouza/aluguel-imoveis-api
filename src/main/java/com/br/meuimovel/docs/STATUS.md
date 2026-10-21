@@ -1,28 +1,50 @@
 # Status do projeto
 
-> Atualizado em 19/10/2026. Consulte os requisitos e a arquitetura para o detalhamento das regras de negócio e do banco.
+> Atualizado em 21/10/2026. Consulte os requisitos e a arquitetura para o detalhamento das regras de negócio e do banco.
 
 ## W01 — Empresa e usuários
 
 - [x] Implementação-base existente: cadastro, login/JWT, perfis e empresas
-- [ ] Completar e verificar o isolamento multitenant nas operações do sistema
-- [ ] Revisar autenticação/autorização para usuários inativos ou bloqueados
-- [ ] Revisar testes e critérios de aceitação pendentes
+- [x] Isolar consultas por empresa e impedir leitura de empresa de outro tenant por ID
+- [x] Limitar listagem de empresas e cadastro de usuários a administradores
+- [ ] Revisar autenticação conforme status ativo/inativo/bloqueado (adiado)
+- [x] Cobrir isolamento por empresa com testes unitários
+
+### Verificação
+
+- [x] Testes de EmpresaService (30), ProprietarioService e ImovelService (7): 37 testes passaram
+- [x] `git diff --check`
+- [ ] Teste integrado de contexto: pendente nesta validação; a configuração local do PostgreSQL rejeita as credenciais (`SQLSTATE 28P01`, ver verificação da W04)
 
 ## W02 — Cadastro de corretores
 
 - [x] Implementação-base existente: cadastro, vínculo com empresa e validação de foto
-- [ ] Expor ativação e desativação de corretores pela API
-- [ ] Disponibilizar perfil público do corretor e dados da empresa
-- [ ] Garantir o efeito do status inativo sobre vitrine e contato
-- [ ] Revisar testes e critérios de aceitação pendentes
+- [x] Expor ativação e desativação de corretores pela API, restritas a gestores da própria empresa
+- [x] Disponibilizar listagem e perfil público do corretor com dados públicos da empresa
+- [x] Ocultar corretores inativos da listagem e do perfil público, incluindo seus contatos
+- [x] Cobrir cadastro, autorização, isolamento por empresa, transições de status e perfil público com testes unitários
+
+### Verificação
+
+- [x] Testes unitários de CorretorService, EmpresaService, ProprietarioService e ImovelService: 49 testes passaram
+- [x] `git diff --check`
+- [ ] Teste de contexto do Spring não executado nesta validação
 
 ## W03 — Proprietários e características
 
 - [x] Implementação-base existente: proprietários, busca por nome/documento, cidades e características
 - [x] Validar documento e evitar duplicidade de proprietário dentro da empresa
-- [ ] Integrar características ao cadastro e atualização do imóvel
-- [ ] Revisar testes e critérios de aceitação pendentes
+- [x] Restringir operações de proprietário à empresa do corretor e retornar DTOs nas respostas
+- [x] Manter cidades e características por administradores e retornar cidades por DTO
+- [x] Associar características selecionadas ao cadastro do imóvel
+- [ ] Associar características à atualização do imóvel (não há endpoint de atualização; fora do escopo atual)
+- [x] Cobrir validação documental, duplicidade, autorização, catálogos e associação de características com testes unitários
+
+### Verificação
+
+- [x] Testes unitários de ProprietarioService (6), CidadeService (4), CaracteristicaService (5), DocumentoValidator (4), EmpresaService (30) e ImovelService (6): 55 testes passaram
+- [x] `git diff --check`
+- [ ] Teste de contexto do Spring não executado nesta validação
 
 ## W04 — Cadastro comum de imóveis
 
@@ -60,12 +82,12 @@
 - [x] Exigir endereço, cidade e coordenadas no cadastro
 - [x] Armazenar várias fotos, ordenar pela lista enviada e selecionar exatamente uma capa
 - [x] Implementar `POST /imovel`, `GET /imovel` e `GET /imovel/{id}`, com isolamento por empresa
-- [x] Criar testes unitários para preços, cadastro e fotos
+- [x] Criar testes unitários para preços, cadastro, características e fotos
 - [x] Cobrir os critérios de cadastro da W04
 
 ### Verificação
 
-- [x] Compilação Maven e testes unitários de `ImovelService` (3 testes)
+- [x] Compilação Maven e testes unitários de `ImovelService` (6 testes)
 - [ ] Teste de contexto (`MeuImovelApplicationTests.contextLoads`) — o PostgreSQL local rejeitou as credenciais configuradas (SQLSTATE 28P01)
 
 ### Fora do escopo atual

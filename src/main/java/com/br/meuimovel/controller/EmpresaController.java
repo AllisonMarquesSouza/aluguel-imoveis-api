@@ -2,8 +2,8 @@ package com.br.meuimovel.controller;
 
 import com.br.meuimovel.dtos.empresa.EmpresaAutonomaCreateDto;
 import com.br.meuimovel.dtos.empresa.EmpresaImobiliariaCreateDto;
+import com.br.meuimovel.dtos.empresa.EmpresaResponseDto;
 import com.br.meuimovel.dtos.empresa.EmpresaUpdateDto;
-import com.br.meuimovel.model.Empresa;
 import com.br.meuimovel.service.EmpresaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,24 +22,26 @@ public class EmpresaController {
     private final EmpresaService empresaService;
 
     @GetMapping
-    public ResponseEntity<List<Empresa>> listAll(){
+    public ResponseEntity<List<EmpresaResponseDto>> listAll(){
         return ResponseEntity.ok(empresaService.listAll());
     }
     @GetMapping("/{id}")
-    public ResponseEntity<Empresa> getById(@PathVariable Integer id){
-        return ResponseEntity.ok(empresaService.getById(id));
+    public ResponseEntity<EmpresaResponseDto> getById(@PathVariable Integer id){
+        return ResponseEntity.ok(empresaService.getResponseById(id));
     }
 
     @PostMapping(value = "/imobiliaria", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Empresa> createImobiliaria(@RequestPart("dto") @Valid EmpresaImobiliariaCreateDto createDto,
-                                                     @RequestPart("logoEmpresa") MultipartFile logoImg){
+    public ResponseEntity<EmpresaResponseDto> createImobiliaria(
+            @RequestPart("dto") @Valid EmpresaImobiliariaCreateDto createDto,
+            @RequestPart("logoEmpresa") MultipartFile logoImg) {
         return new ResponseEntity<>(empresaService.createImobiliaria(createDto, logoImg), HttpStatus.CREATED);
     }
 
     @PostMapping(value = "/autonoma", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<Empresa> createAutonoma(@RequestPart("dto") @Valid EmpresaAutonomaCreateDto createDto,
-                                                     @RequestPart("logoEmpresa") MultipartFile logoImg,
-                                                     @RequestPart("fotoCorretor") MultipartFile fotoCorretor){
+    public ResponseEntity<EmpresaResponseDto> createAutonoma(
+            @RequestPart("dto") @Valid EmpresaAutonomaCreateDto createDto,
+            @RequestPart("logoEmpresa") MultipartFile logoImg,
+            @RequestPart("fotoCorretor") MultipartFile fotoCorretor) {
         return new ResponseEntity<>(empresaService.createAutonoma(createDto, logoImg, fotoCorretor), HttpStatus.CREATED);
     }
 
@@ -70,6 +72,4 @@ public class EmpresaController {
         empresaService.deleteById(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
-
 }
-
