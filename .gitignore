@@ -4,6 +4,12 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 /uploads/**
+
+# Credenciais locais e variáveis de ambiente
+.env
+.env.*
+!.env.example
+
 ### STS ###
 .apt_generated
 .classpath
