@@ -17,6 +17,7 @@ import com.br.meuimovel.model.Empresa;
 import com.br.meuimovel.model.Usuario;
 import com.br.meuimovel.repository.CorretorRepository;
 import com.br.meuimovel.repository.UsuarioRepository;
+import com.br.meuimovel.storage.FileStorageService;
 import com.br.meuimovel.validator.FotoValidator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,9 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CorretorServiceTest {
+    private static final String FOTO_IMAGEM_ID = "84c8304e-9e5d-4b81-b8d5-90a53c6171bc";
+    private static final String LOGO_IMAGEM_ID = "c4bf744d-a873-4ef0-b1f2-b1532bfb31db";
+
     @Mock private UsuarioRepository usuarioRepository;
     @Mock private CorretorRepository corretorRepository;
     @Mock private PasswordEncoder passwordEncoder;
@@ -66,7 +70,8 @@ class CorretorServiceTest {
             usuario.setId(21);
             return usuario;
         });
-        when(fileStorageService.salvarFotoCorretor(foto, 21)).thenReturn("/corretores/21.png");
+        when(fileStorageService.salvarFotoCorretor(foto, 21))
+                .thenReturn("/imagens/corretor/21/" + FOTO_IMAGEM_ID);
         when(corretorRepository.save(any(Corretor.class))).thenAnswer(invocation -> {
             Corretor corretor = invocation.getArgument(0);
             corretor.setId(21);
@@ -78,7 +83,8 @@ class CorretorServiceTest {
         assertEquals(21, response.id());
         assertEquals(dto.nome(), response.nome());
         assertEquals(dto.email(), response.email());
-        assertEquals("/corretores/21.png", response.fotoUrl());
+        assertEquals("/imagens/corretor/21/" + FOTO_IMAGEM_ID, response.fotoUrl());
+        assertEquals(FOTO_IMAGEM_ID, response.fotoImagemId());
         var usuarioCaptor = org.mockito.ArgumentCaptor.forClass(Usuario.class);
         verify(usuarioRepository).save(usuarioCaptor.capture());
         assertSame(empresa, usuarioCaptor.getValue().getEmpresa());
@@ -182,10 +188,12 @@ class CorretorServiceTest {
         assertEquals(1, response.size());
         assertEquals("Corretor 21", response.get(0).nome());
         assertEquals("corretor21@example.com", response.get(0).email());
+        assertEquals(FOTO_IMAGEM_ID, response.get(0).fotoImagemId());
         assertEquals("81999999999", response.get(0).telefone());
         EmpresaPublicaResponseDto empresaResponse = response.get(0).empresa();
         assertEquals(7, empresaResponse.id());
         assertEquals("Imobiliária 7", empresaResponse.nome());
+        assertEquals(LOGO_IMAGEM_ID, empresaResponse.logoImagemId());
         assertEquals(new CidadeResponseDto(4, "Recife", "PE"), empresaResponse.cidadeBase());
         assertEquals(List.of(new CidadeResponseDto(4, "Recife", "PE")), empresaResponse.cidadesAtuacao());
         verify(corretorRepository).findDistinctByUsuario_StatusOrderByUsuario_NomeAsc(UsuarioStatus.ATIVO);
@@ -202,7 +210,9 @@ class CorretorServiceTest {
         assertEquals(21, response.id());
         assertEquals("Atendimento imobiliário", response.apresentacao());
         assertEquals("81988888888", response.whatsapp());
+        assertEquals(FOTO_IMAGEM_ID, response.fotoImagemId());
         assertNotNull(response.empresa());
+        assertEquals(LOGO_IMAGEM_ID, response.empresa().logoImagemId());
         assertEquals("81444444444", response.empresa().whatsapp());
     }
 
@@ -233,12 +243,13 @@ class CorretorServiceTest {
         Cidade cidade = new Cidade("Recife", Uf.PE);
         cidade.setId(4);
         Empresa empresa = empresa(empresaId);
+        empresa.setLogoMarcaUrl("/imagens/empresa/" + empresaId + "/" + LOGO_IMAGEM_ID);
         empresa.setCidadeBase(cidade);
         empresa.setCidadesAtuacao(new HashSet<>(Set.of(cidade)));
         Usuario usuario = new Usuario(empresa, "Corretor " + id, "corretor" + id + "@example.com", "senha-hash",
                 UsuarioPerfil.CORRETOR, status, LocalDateTime.now());
         usuario.setId(id);
-        Corretor corretor = new Corretor(usuario, "/corretores/" + id + ".png", "CRECI-" + id,
+        Corretor corretor = new Corretor(usuario, "/imagens/corretor/" + id + "/" + FOTO_IMAGEM_ID, "CRECI-" + id,
                 "81999999999", "81988888888", "Atendimento imobiliário");
         corretor.setId(id);
         return corretor;
