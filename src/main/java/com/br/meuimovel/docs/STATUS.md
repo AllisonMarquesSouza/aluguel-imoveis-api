@@ -1,6 +1,6 @@
 # Status do projeto
 
-> Atualizado em 21/10/2026. Consulte os requisitos e a arquitetura para o detalhamento das regras de negócio e do banco.
+> Atualizado em 27/10/2026. Consulte os requisitos e a arquitetura para o detalhamento das regras de negócio e do banco.
 
 ## W01 — Empresa e usuários
 
@@ -102,3 +102,20 @@
 ## Instrução de continuidade
 
 Antes de iniciar a próxima etapa, confira o estado real do código e atualize este documento caso encontre diferenças. Não marque itens como concluídos sem verificar sua implementação.
+
+## [WEB] EXTRA — Gerenciamento de imagens
+
+- [x] Armazenar imagens em uma pasta configurável, organizada por tipo e ID da entidade
+- [x] Compartilhar armazenamento e validação de imagens entre os cadastros existentes e o controller de imagens
+- [x] Disponibilizar leitura por URL, upload, substituição e remoção com autorização e isolamento por empresa
+- [x] Validar conteúdo JPEG, PNG e WebP e limitar cada arquivo a 5 MB
+- [x] Preservar as regras de foto obrigatória do corretor e do imóvel, promovendo nova capa quando a atual é excluída
+- [x] Documentar endpoints e consumo na seção **Imagens** do `README.md`
+
+### Verificação
+
+- [x] Compilação Maven
+- [x] `git diff --check`
+- [x] Testes de `ImagemService`, `LocalFileStorageService` e `FotoValidator`: 8 testes passaram
+- [x] Testes unitários do projeto, excluindo o teste de contexto: 77 testes passaram
+- [ ] `MeuImovelApplicationTests.contextLoads`: não inicializou porque a autenticação do PostgreSQL local falhou (`SQLSTATE 28P01`)

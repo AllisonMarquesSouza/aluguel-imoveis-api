@@ -50,7 +50,7 @@ As rotas protegidas usam JWT. Envie o token retornado por `POST /auth/login` no 
 Authorization: Bearer <token>
 ```
 
-O token expira em duas horas. As rotas `GET /corretor` e `GET /corretor/{id}` e `POST /auth/login` são públicas. As demais exigem autenticação, além das permissões por perfil descritas nas seções abaixo.
+O token expira em duas horas. As rotas `GET /corretor`, `GET /corretor/{id}`, `GET /imagens/{tipo}/{entidadeId}/{imagemId}` e `POST /auth/login` são públicas. As demais exigem autenticação, além das permissões por perfil descritas nas seções abaixo.
 
 ### Perfis e escopo
 
@@ -59,7 +59,7 @@ O token expira em duas horas. As rotas `GET /corretor` e `GET /corretor/{id}` e 
 | `ADMINISTRADOR` | Registra usuários; lista, cria, atualiza, ativa, desativa e remove empresas; cria e remove cidades; cria características. |
 | `GESTOR` | Cadastra e ativa/desativa corretores da própria empresa. A empresa precisa estar ativa para cadastrar corretores. |
 | `CORRETOR` | Cadastra e consulta proprietários da própria empresa e cria/consulta os imóveis da empresa. O corretor precisa estar ativo. |
-| Não autenticado | Consulta a listagem e o perfil público de corretores ativos. |
+| Não autenticado | Consulta a listagem e o perfil público de corretores ativos e busca imagens pela API. |
 
 As consultas de empresa por ID permitem ao administrador consultar qualquer empresa e aos demais usuários consultar apenas a empresa associada à própria conta. Proprietários e imóveis também são limitados à empresa do corretor autenticado. Uma tentativa de consultar um recurso de outra empresa pode retornar `404`.
 
@@ -84,6 +84,7 @@ Os erros tratados pela API seguem este formato:
 | `403 Forbidden` | Perfil sem permissão para a rota, conforme a regra aplicada pelo Spring Security. |
 | `404 Not Found` | Cidade, empresa, corretor, proprietário, característica ou imóvel não encontrado; inclui recursos fora do escopo da empresa do usuário. |
 | `409 Conflict` | Documento, e-mail, CRECI, código de imóvel ou nome de cidade/característica duplicado; empresa inativa ou transição de status inválida. |
+| `413 Content Too Large` | Arquivo maior que o limite multipart configurado ou requisição multipart acima do limite total. |
 | `415 Unsupported Media Type` | Requisição multipart enviada com tipo de conteúdo incompatível. |
 
 Nas respostas de validação de DTO, `message` contém os campos inválidos e suas mensagens. O `httpStatus` é o nome do status HTTP; o status também vem na linha de resposta.
@@ -171,7 +172,8 @@ Consulta uma empresa por ID. Exige autenticação; o administrador pode consulta
   "tipoDocumento": "CNPJ",
   "documento": "11222333000181",
   "creci": "12345-J",
-  "logoMarcaUrl": "/logos/12.png",
+  "logoMarcaUrl": "/imagens/empresa/12/c4bf744d-a873-4ef0-b1f2-b1532bfb31db",
+  "logoImagemId": "c4bf744d-a873-4ef0-b1f2-b1532bfb31db",
   "email": "contato@example.com",
   "cidadeBase": { "id": 1, "nome": "Recife", "uf": "PE" },
   "cidadesAtuacao": [{ "id": 1, "nome": "Recife", "uf": "PE" }],
@@ -351,7 +353,8 @@ Rotas públicas. Listam corretores ativos ou consultam o perfil público de um c
   "id": 7,
   "nome": "João Silva",
   "creci": "54321-F",
-  "fotoUrl": "/corretores/7.png",
+  "fotoUrl": "/imagens/corretor/7/84c8304e-9e5d-4b81-b8d5-90a53c6171bc",
+  "fotoImagemId": "84c8304e-9e5d-4b81-b8d5-90a53c6171bc",
   "telefone": "81999990000",
   "whatsapp": "81999990000",
   "email": "joao@example.com",
@@ -360,7 +363,8 @@ Rotas públicas. Listam corretores ativos ou consultam o perfil público de um c
     "id": 12,
     "tipo": "IMOBILIARIA",
     "nome": "Imobiliária Recife",
-    "logoMarcaUrl": "/logos/12.png",
+    "logoMarcaUrl": "/imagens/empresa/12/c4bf744d-a873-4ef0-b1f2-b1532bfb31db",
+    "logoImagemId": "c4bf744d-a873-4ef0-b1f2-b1532bfb31db",
     "cidadesAtuacao": [{ "id": 1, "nome": "Recife", "uf": "PE" }]
   }
 }
@@ -521,7 +525,13 @@ curl -X POST http://localhost:8080/imovel \
   },
   "caracteristicas": [{ "id": 3, "nome": "Piscina" }],
   "fotos": [
-    { "id": 101, "url": "/imoveis/88/1.jpg", "ordem": 1, "capa": true }
+    {
+      "id": 101,
+      "imagemId": "369fd49e-c6e3-45b7-a873-4a8c4635539f",
+      "url": "/imagens/imovel/88/369fd49e-c6e3-45b7-a873-4a8c4635539f",
+      "ordem": 1,
+      "capa": true
+    }
   ]
 }
 ```
@@ -536,4 +546,89 @@ O código atual não expõe filtro de imóveis por cidade nem rotas para atualiz
 
 ## Regras comuns de arquivos
 
-As fotos de empresa, corretor e imóvel aceitam `image/jpeg`, `image/png` ou `image/webp`. O validador da aplicação permite até 5 MiB por foto. Como `spring.servlet.multipart.max-file-size` e `spring.servlet.multipart.max-request-size` não estão definidos em `application.properties`, a configuração padrão do Spring Boot limita cada arquivo a 1 MiB e cada requisição multipart a 10 MiB; esse é o limite efetivo na configuração atual. Nos endpoints multipart, envie a parte `dto` com `Content-Type: application/json` e os arquivos usando exatamente os nomes documentados para cada rota.
+As fotos de empresa, corretor e imóvel aceitam `image/jpeg`, `image/png` ou `image/webp`. O conteúdo do arquivo é identificado pela assinatura da imagem e comparado ao `Content-Type` informado quando ele estiver presente. O limite configurado é de 5 MB por arquivo e 50 MB por requisição multipart; o validador também limita cada foto a 5 MiB. Nos endpoints multipart, envie a parte `dto` com `Content-Type: application/json` e os arquivos usando exatamente os nomes documentados para cada rota.
+
+## Imagens
+
+Os endpoints abaixo permitem consultar e gerenciar imagens associadas a uma empresa, corretor ou imóvel. `tipo` aceita `empresa`, `corretor` ou `imovel`, sem diferenciar maiúsculas de minúsculas; `entidadeId` é o ID da entidade correspondente e `imagemId` é o UUID retornado no upload. As respostas incluem URLs relativas neste formato e IDs explícitos (`logoImagemId`, `fotoImagemId` e `imagemId` em cada foto de imóvel). Combine a URL com a origem da API para usá-la, por exemplo, em `img src`.
+
+No DTO de imóvel, `fotos[].id` continua sendo o ID do registro da foto no banco; `fotos[].imagemId` é o UUID usado nas rotas de imagem. Para URLs antigas ou ausentes, os campos de ID da imagem podem vir nulos.
+
+Os arquivos são armazenados fora do banco, em `APP_STORAGE_LOCATION` (padrão `uploads`, relativo ao diretório de execução), dentro de pastas por tipo e ID da entidade. O nome enviado pelo cliente não é usado; cada upload recebe um UUID. O campo da entidade no banco guarda a URL da API.
+
+Os uploads dos endpoints existentes continuam disponíveis: `POST /empresa/imobiliaria` e `POST /empresa/autonoma` recebem `logoEmpresa`; a rota autônoma também recebe `fotoCorretor`; `PUT /empresa/{id}` aceita a parte opcional `logoEmpresa`; `POST /corretor` recebe `foto`; e `POST /imovel` recebe uma ou mais partes `fotos`. As URLs retornadas por esses fluxos agora apontam para `/imagens/{tipo}/{entidadeId}/{imagemId}` e podem ser consultadas pelo `GET` descrito abaixo.
+
+### `GET /imagens/{tipo}/{entidadeId}/{imagemId}`
+
+Busca a imagem e devolve os bytes com `Content-Type` detectado (`image/jpeg`, `image/png` ou `image/webp`) e disposição `inline`. É público e não exige token. A imagem precisa estar associada à entidade; uma referência inexistente ou sem associação retorna `404`.
+
+```bash
+curl -i http://localhost:8080/imagens/imovel/88/369fd49e-c6e3-45b7-a873-4a8c4635539f
+```
+
+### `POST /imagens/{tipo}/{entidadeId}`
+
+Adiciona uma imagem. Exige token e `multipart/form-data` com a parte `arquivo`.
+
+```bash
+curl -X POST http://localhost:8080/imagens/imovel/88 \
+  -H 'Authorization: Bearer <jwt>' \
+  -F 'arquivo=@sala.webp;type=image/webp'
+```
+
+**Resposta `201 Created`:**
+
+```json
+{
+  "id": "369fd49e-c6e3-45b7-a873-4a8c4635539f",
+  "tipo": "IMOVEL",
+  "entidadeId": 88,
+  "url": "/imagens/imovel/88/369fd49e-c6e3-45b7-a873-4a8c4635539f"
+}
+```
+
+Para empresas, só é possível adicionar logo se a empresa ainda não tiver um; para corretores, só se ainda não houver foto. Imóveis podem receber fotos adicionais. Ao adicionar a primeira foto de um imóvel sem capa, ela se torna a capa. A empresa precisa estar ativa para receber imagens.
+
+### `PUT /imagens/{tipo}/{entidadeId}/{imagemId}`
+
+Substitui o conteúdo da imagem existente sem alterar seu ID ou URL. Exige token e `multipart/form-data` com a parte `arquivo`.
+
+```bash
+curl -X PUT http://localhost:8080/imagens/imovel/88/369fd49e-c6e3-45b7-a873-4a8c4635539f \
+  -H 'Authorization: Bearer <jwt>' \
+  -F 'arquivo=@sala-atualizada.jpg;type=image/jpeg'
+```
+
+**Resposta `200 OK`:** o mesmo formato JSON do `POST`, preservando `id` e `url`.
+
+### `DELETE /imagens/{tipo}/{entidadeId}/{imagemId}`
+
+Desassocia e remove uma imagem, retornando `204 No Content` quando concluído. Exige token. A foto do corretor é obrigatória e não pode ser removida; use `PUT` para substituí-la. Um imóvel deve manter ao menos uma foto. Ao remover a capa de um imóvel, a foto restante de menor `ordem` passa a ser a nova capa. O logo da empresa pode ser removido.
+
+```bash
+curl -X DELETE http://localhost:8080/imagens/empresa/12/c4bf744d-a873-4ef0-b1f2-b1532bfb31db \
+  -H 'Authorization: Bearer <jwt>'
+```
+
+### Autenticação e permissões
+
+Envie `Authorization: Bearer <jwt>` para `POST`, `PUT` e `DELETE`. As rotas aceitam os perfis `ADMINISTRADOR`, `GESTOR` e `CORRETOR`, mas o serviço também confere o tipo da imagem e a empresa associada:
+
+| Imagem | Pode adicionar/atualizar/remover |
+| --- | --- |
+| Logo da empresa | `ADMINISTRADOR` em qualquer empresa ou `GESTOR` da própria empresa. |
+| Foto do corretor | `GESTOR` da empresa do corretor. O próprio corretor e o administrador não podem alterá-la por estes endpoints. A remoção é vedada por ser obrigatória. |
+| Foto do imóvel | `ADMINISTRADOR` ou `CORRETOR` da empresa do imóvel. O serviço não exige que o corretor seja o responsável específico pelo imóvel. |
+
+O usuário precisa estar ativo e autenticado. Para adicionar imagens, a empresa associada precisa estar ativa. O `GET` é público.
+
+### Validações e erros de imagem
+
+| HTTP | Situação |
+| --- | --- |
+| `400 Bad Request` | Tipo de entidade inválido; arquivo vazio, maior que 5 MiB, conteúdo que não é JPEG/PNG/WebP, divergência entre conteúdo e `Content-Type`, ou erro de armazenamento. |
+| `401 Unauthorized` / `403 Forbidden` | Token ou usuário ativo ausente/inválido, perfil sem acesso à rota ou usuário sem autorização para aquela empresa, conforme a camada que rejeitou a operação. |
+| `404 Not Found` | Entidade ou imagem inexistente, imagem não associada à entidade indicada, ou arquivo não encontrado no armazenamento. |
+| `409 Conflict` | Tentativa de adicionar logo/foto que já existe, empresa inativa ao adicionar imagem, tentativa de remover foto obrigatória de corretor ou última foto do imóvel. |
+| `413 Content Too Large` | Arquivo acima de 5 MB ou requisição multipart acima de 50 MB. |
+| `415 Unsupported Media Type` | Upload enviado com tipo de conteúdo incompatível com `multipart/form-data`. |
