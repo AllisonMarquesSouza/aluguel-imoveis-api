@@ -3,11 +3,14 @@ package com.br.meuimovel.service;
 import com.br.meuimovel.dtos.caracteristica.CaracteristicaResponseDto;
 import com.br.meuimovel.dtos.imovel.*;
 import com.br.meuimovel.enums.FinalidadeImovel;
+import com.br.meuimovel.enums.TipoImagem;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
 import com.br.meuimovel.exception.*;
 import com.br.meuimovel.model.*;
 import com.br.meuimovel.repository.*;
+import com.br.meuimovel.storage.FileStorageService;
+import com.br.meuimovel.storage.ImagemUrl;
 import com.br.meuimovel.validator.FotoValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -204,7 +207,10 @@ public class ImovelService {
         List<FotoImovelResponseDto> fotos = fotoImovelRepository
                 .findAllByImovel_IdOrderByOrdemAsc(imovel.getId())
                 .stream()
-                .map(foto -> new FotoImovelResponseDto(foto.getId(), foto.getUrl(), foto.getOrdem(), foto.isCapa()))
+                .map(foto -> new FotoImovelResponseDto(
+                        foto.getId(),
+                        ImagemUrl.extrairImagemId(foto.getUrl(), TipoImagem.IMOVEL, imovel.getId()),
+                        foto.getUrl(), foto.getOrdem(), foto.isCapa()))
                 .toList();
 
         return new ImovelResponseDto(

@@ -11,6 +11,7 @@ import java.util.Optional;
 @Repository
 public interface CorretorRepository extends JpaRepository<Corretor, Integer> {
     boolean existsByCreci(String creci);
+    Optional<Corretor> findByIdAndFotoUrl(Integer id, String fotoUrl);
     Optional<Corretor> findByIdAndUsuario_Empresa_Id(Integer id, Integer usuarioEmpresaId);
     List<Corretor> findDistinctByUsuario_StatusOrderByUsuario_NomeAsc(UsuarioStatus status);
     Optional<Corretor> findByIdAndUsuario_Status(Integer id, UsuarioStatus status);

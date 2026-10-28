@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -89,6 +90,12 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(ImagemNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleImagemNotFoundException(ImagemNotFoundException exception) {
+        ErrorResponse errorResponse = new ErrorResponse(exception.getMessage(), HttpStatus.NOT_FOUND, LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(CaracteristicaNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleCaracteristicaNotFoundException(CaracteristicaNotFoundException exception) {
         ErrorResponse errorResponse = new ErrorResponse
@@ -165,6 +172,18 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(ImagemAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleImagemAlreadyExistsException(ImagemAlreadyExistsException exception) {
+        ErrorResponse errorResponse = new ErrorResponse(exception.getMessage(), HttpStatus.CONFLICT, LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(ImagemInvalidaException.class)
+    public ResponseEntity<ErrorResponse> handleImagemInvalidaException(ImagemInvalidaException exception) {
+        ErrorResponse errorResponse = new ErrorResponse(exception.getMessage(), HttpStatus.CONFLICT, LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(ImovelInvalidoException.class)
     public ResponseEntity<ErrorResponse> handleImovelInvalidoException(ImovelInvalidoException exception) {
         ErrorResponse errorResponse = new ErrorResponse
@@ -214,6 +233,15 @@ public class GlobalExceptionHandler {
                         LocalDateTime.now());
 
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceededException(
+            MaxUploadSizeExceededException exception) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                "O upload excedeu o limite de 5 MB por arquivo ou 50 MB por requisição.",
+                HttpStatus.CONTENT_TOO_LARGE, LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONTENT_TOO_LARGE);
     }
 
     @ExceptionHandler(FileStorageException.class)

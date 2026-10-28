@@ -7,6 +7,7 @@ import com.br.meuimovel.dtos.empresa.EmpresaImobiliariaCreateDto;
 import com.br.meuimovel.dtos.empresa.EmpresaResponseDto;
 import com.br.meuimovel.dtos.empresa.EmpresaUpdateDto;
 import com.br.meuimovel.enums.TipoEmpresa;
+import com.br.meuimovel.enums.TipoImagem;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
 import com.br.meuimovel.exception.*;
@@ -15,6 +16,8 @@ import com.br.meuimovel.repository.CorretorRepository;
 import com.br.meuimovel.repository.EmpresaRepository;
 import com.br.meuimovel.repository.GestorRepository;
 import com.br.meuimovel.repository.UsuarioRepository;
+import com.br.meuimovel.storage.FileStorageService;
+import com.br.meuimovel.storage.ImagemUrl;
 import com.br.meuimovel.validator.DocumentoValidator;
 import com.br.meuimovel.validator.FotoValidator;
 import lombok.RequiredArgsConstructor;
@@ -281,18 +284,31 @@ public class EmpresaService {
             empresa.getCidadesAtuacao().addAll(cidades);
         }
 
+        String logoAnterior = null;
+        String logoNova = null;
         if (logoImg != null && !logoImg.isEmpty()) {
             fotoValidator.validar(logoImg);
 
-            String logoUrl = fileStorageService.salvarLogoEmpresa(
+            logoAnterior = empresa.getLogoMarcaUrl();
+            logoNova = fileStorageService.salvarLogoEmpresa(
                     logoImg,
                     empresa.getId()
             );
 
-            empresa.setLogoMarcaUrl(logoUrl);
+            empresa.setLogoMarcaUrl(logoNova);
         }
 
-        empresaRepository.save(empresa);
+        try {
+            empresaRepository.save(empresa);
+        } catch (RuntimeException exception) {
+            if (logoNova != null) {
+                tentarExcluirArquivo(logoNova);
+            }
+            throw exception;
+        }
+        if (logoNova != null && logoAnterior != null && !logoAnterior.equals(logoNova)) {
+            tentarExcluirArquivo(logoAnterior);
+        }
     }
 
     @Transactional
@@ -335,6 +351,14 @@ public class EmpresaService {
         return usuario;
     }
 
+    private void tentarExcluirArquivo(String caminho) {
+        try {
+            fileStorageService.deletar(caminho);
+        } catch (RuntimeException ignored) {
+            // A falha na limpeza não deve ocultar a falha original da atualização.
+        }
+    }
+
     private EmpresaResponseDto toResponse(Empresa empresa) {
         CidadeResponseDto cidadeBase = empresa.getCidadeBase() == null
                 ? null
@@ -349,7 +373,9 @@ public class EmpresaService {
         return new EmpresaResponseDto(
                 empresa.getId(), empresa.getTipo(), empresa.getNome(), empresa.getRazaoSocial(),
                 empresa.getTipoDocumento(), empresa.getDocumento(), empresa.getCreci(),
-                empresa.getLogoMarcaUrl(), empresa.getDescricao(), empresa.getTelefone(),
+                empresa.getLogoMarcaUrl(),
+                ImagemUrl.extrairImagemId(empresa.getLogoMarcaUrl(), TipoImagem.EMPRESA, empresa.getId()),
+                empresa.getDescricao(), empresa.getTelefone(),
                 empresa.getWhatsapp(), empresa.getEmail(), empresa.getLogradouro(), empresa.getNumero(),
                 empresa.getBairro(), empresa.getCep(), cidadeBase, cidadesAtuacao,
                 empresa.isAtiva(), empresa.getCriadoEm()
