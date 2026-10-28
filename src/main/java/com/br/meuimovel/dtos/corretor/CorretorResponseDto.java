@@ -8,6 +8,7 @@ public record CorretorResponseDto(
         String nome,
         String creci,
         String fotoUrl,
+        String fotoImagemId,
         String telefone,
         String whatsapp,
         String email,

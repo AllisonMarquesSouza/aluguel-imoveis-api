@@ -12,6 +12,7 @@ public record EmpresaPublicaResponseDto(
         String razaoSocial,
         String creci,
         String logoMarcaUrl,
+        String logoImagemId,
         String descricao,
         String telefone,
         String whatsapp,

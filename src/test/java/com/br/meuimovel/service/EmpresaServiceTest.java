@@ -26,6 +26,7 @@ import com.br.meuimovel.repository.CorretorRepository;
 import com.br.meuimovel.repository.EmpresaRepository;
 import com.br.meuimovel.repository.GestorRepository;
 import com.br.meuimovel.repository.UsuarioRepository;
+import com.br.meuimovel.storage.FileStorageService;
 import com.br.meuimovel.validator.DocumentoValidator;
 import com.br.meuimovel.validator.FotoValidator;
 import org.junit.jupiter.api.AfterEach;
@@ -50,6 +51,9 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class EmpresaServiceTest {
+    private static final String LOGO_IMAGEM_ID = "c4bf744d-a873-4ef0-b1f2-b1532bfb31db";
+    private static final String LOGO_URL_50 = "/imagens/empresa/50/" + LOGO_IMAGEM_ID;
+
     @Mock private EmpresaRepository empresaRepository;
     @Mock private CidadeService cidadeService;
     @Mock private DocumentoValidator documentoValidator;
@@ -162,7 +166,7 @@ class EmpresaServiceTest {
             saved.setId(50);
             return saved;
         });
-        when(fileStorageService.salvarLogoEmpresa(logo, 50)).thenReturn("/logos/50.png");
+        when(fileStorageService.salvarLogoEmpresa(logo, 50)).thenReturn(LOGO_URL_50);
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> {
             Usuario saved = invocation.getArgument(0);
             saved.setId(80);
@@ -173,7 +177,8 @@ class EmpresaServiceTest {
 
         assertEquals(50, response.id());
         assertEquals(TipoEmpresa.IMOBILIARIA, response.tipo());
-        assertEquals("/logos/50.png", response.logoMarcaUrl());
+        assertEquals(LOGO_URL_50, response.logoMarcaUrl());
+        assertEquals(LOGO_IMAGEM_ID, response.logoImagemId());
         assertEquals("Recife", response.cidadeBase().nome());
         assertEquals(List.of(new CidadeResponseDto(11, "Olinda", "PE")), response.cidadesAtuacao());
 
@@ -277,19 +282,21 @@ class EmpresaServiceTest {
             saved.setId(50);
             return saved;
         });
-        when(fileStorageService.salvarLogoEmpresa(logo, 50)).thenReturn("/logos/50.png");
+        when(fileStorageService.salvarLogoEmpresa(logo, 50)).thenReturn(LOGO_URL_50);
         when(usuarioRepository.save(any(Usuario.class))).thenAnswer(invocation -> {
             Usuario saved = invocation.getArgument(0);
             saved.setId(80);
             return saved;
         });
-        when(fileStorageService.salvarFotoCorretor(fotoCorretor, 80)).thenReturn("/corretores/80.png");
+        when(fileStorageService.salvarFotoCorretor(fotoCorretor, 80))
+                .thenReturn("/imagens/corretor/80/84c8304e-9e5d-4b81-b8d5-90a53c6171bc");
 
         var response = empresaService.createAutonoma(createDto, logo, fotoCorretor);
 
         assertEquals(50, response.id());
         assertEquals(TipoEmpresa.AUTONOMO, response.tipo());
-        assertEquals("/logos/50.png", response.logoMarcaUrl());
+        assertEquals(LOGO_URL_50, response.logoMarcaUrl());
+        assertEquals(LOGO_IMAGEM_ID, response.logoImagemId());
         assertEquals(List.of(new CidadeResponseDto(11, "Olinda", "PE")), response.cidadesAtuacao());
 
         var usuarioCaptor = ArgumentCaptor.forClass(Usuario.class);
@@ -300,7 +307,8 @@ class EmpresaServiceTest {
 
         var corretorCaptor = ArgumentCaptor.forClass(Corretor.class);
         verify(corretorRepository).save(corretorCaptor.capture());
-        assertEquals("/corretores/80.png", corretorCaptor.getValue().getFotoUrl());
+        assertEquals("/imagens/corretor/80/84c8304e-9e5d-4b81-b8d5-90a53c6171bc",
+                corretorCaptor.getValue().getFotoUrl());
         assertEquals("CRECI-2", corretorCaptor.getValue().getCreci());
         verify(fotoValidator, times(2)).validar(any());
         verify(fileStorageService).salvarLogoEmpresa(logo, 50);
@@ -376,6 +384,7 @@ class EmpresaServiceTest {
     @Test
     void updateAppliesCompanyFieldsCitiesAndNewLogo() {
         Empresa empresa = empresaTenant(7, "documento-antigo");
+        empresa.setLogoMarcaUrl("/uploads/empresas/7/logomarca-antiga.png");
         autenticar(UsuarioPerfil.GESTOR, empresaTenant(7, "outro-documento"));
         when(empresaRepository.findById(7)).thenReturn(Optional.of(empresa));
         when(empresaRepository.existsByDocumento("documento-novo")).thenReturn(false);
@@ -385,7 +394,8 @@ class EmpresaServiceTest {
         when(cidadeService.getById(12)).thenReturn(cidadeBase);
         when(cidadeService.getAllById(Set.of(13, 14))).thenReturn(Set.of(cidadeAtuacao1, cidadeAtuacao2));
         MockMultipartFile logo = imagem("logo-nova.png");
-        when(fileStorageService.salvarLogoEmpresa(logo, 7)).thenReturn("/logos/7-atualizada.png");
+        when(fileStorageService.salvarLogoEmpresa(logo, 7))
+                .thenReturn("/imagens/empresa/7/0f17a05b-95f3-49fc-8730-4fbb5345e840");
         EmpresaUpdateDto updateDto = new EmpresaUpdateDto(
                 TipoEmpresa.AUTONOMO, "Nome atualizado", "Razão atualizada", TipoDocumento.CNPJ,
                 "documento-novo", "CRECI-ATUALIZADO", null, "Descrição atualizada",
@@ -410,10 +420,11 @@ class EmpresaServiceTest {
         assertEquals("50000000", empresa.getCep());
         assertSame(cidadeBase, empresa.getCidadeBase());
         assertEquals(Set.of(cidadeAtuacao1, cidadeAtuacao2), empresa.getCidadesAtuacao());
-        assertEquals("/logos/7-atualizada.png", empresa.getLogoMarcaUrl());
+        assertEquals("/imagens/empresa/7/0f17a05b-95f3-49fc-8730-4fbb5345e840", empresa.getLogoMarcaUrl());
         verify(empresaRepository).save(empresa);
         verify(fotoValidator).validar(logo);
         verify(fileStorageService).salvarLogoEmpresa(logo, 7);
+        verify(fileStorageService).deletar("/uploads/empresas/7/logomarca-antiga.png");
     }
 
     @Test

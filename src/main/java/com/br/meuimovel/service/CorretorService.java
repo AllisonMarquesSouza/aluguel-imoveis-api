@@ -6,6 +6,7 @@ import com.br.meuimovel.dtos.corretor.CorretorPublicoResponseDto;
 import com.br.meuimovel.dtos.corretor.CorretorResponseDto;
 import com.br.meuimovel.dtos.empresa.EmpresaPublicaResponseDto;
 import com.br.meuimovel.enums.TipoEmpresa;
+import com.br.meuimovel.enums.TipoImagem;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
 import com.br.meuimovel.exception.CorretorNotFoundException;
@@ -20,6 +21,8 @@ import com.br.meuimovel.model.Empresa;
 import com.br.meuimovel.model.Usuario;
 import com.br.meuimovel.repository.CorretorRepository;
 import com.br.meuimovel.repository.UsuarioRepository;
+import com.br.meuimovel.storage.FileStorageService;
+import com.br.meuimovel.storage.ImagemUrl;
 import com.br.meuimovel.validator.FotoValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -95,6 +98,8 @@ public class CorretorService {
                 .nome(usuario.getNome())
                 .creci(corretor.getCreci())
                 .fotoUrl(corretor.getFotoUrl())
+                .fotoImagemId(ImagemUrl.extrairImagemId(
+                        corretor.getFotoUrl(), TipoImagem.CORRETOR, corretor.getId()))
                 .telefone(corretor.getTelefone())
                 .whatsapp(corretor.getWhatsapp())
                 .email(usuario.getEmail())
@@ -151,6 +156,7 @@ public class CorretorService {
         Empresa empresa = usuario.getEmpresa();
         return new CorretorPublicoResponseDto(
                 corretor.getId(), usuario.getNome(), corretor.getCreci(), corretor.getFotoUrl(),
+                ImagemUrl.extrairImagemId(corretor.getFotoUrl(), TipoImagem.CORRETOR, corretor.getId()),
                 corretor.getTelefone(), corretor.getWhatsapp(), usuario.getEmail(), corretor.getApresentacao(),
                 empresa == null ? null : toEmpresaPublica(empresa)
         );
@@ -165,7 +171,9 @@ public class CorretorService {
                 : empresa.getCidadesAtuacao().stream().map(this::toCidadeResponse).toList();
         return new EmpresaPublicaResponseDto(
                 empresa.getId(), empresa.getTipo(), empresa.getNome(), empresa.getRazaoSocial(), empresa.getCreci(),
-                empresa.getLogoMarcaUrl(), empresa.getDescricao(), empresa.getTelefone(), empresa.getWhatsapp(),
+                empresa.getLogoMarcaUrl(),
+                ImagemUrl.extrairImagemId(empresa.getLogoMarcaUrl(), TipoImagem.EMPRESA, empresa.getId()),
+                empresa.getDescricao(), empresa.getTelefone(), empresa.getWhatsapp(),
                 empresa.getEmail(), empresa.getLogradouro(), empresa.getNumero(), empresa.getBairro(), empresa.getCep(),
                 cidadeBase, cidadesAtuacao
         );

@@ -14,6 +14,7 @@ import com.br.meuimovel.exception.ImovelNotFoundException;
 import com.br.meuimovel.exception.CaracteristicaNotFoundException;
 import com.br.meuimovel.model.*;
 import com.br.meuimovel.repository.*;
+import com.br.meuimovel.storage.FileStorageService;
 import com.br.meuimovel.validator.FotoValidator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,9 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class ImovelServiceTest {
+    private static final String PRIMEIRA_IMAGEM_ID = "c4bf744d-a873-4ef0-b1f2-b1532bfb31db";
+    private static final String SEGUNDA_IMAGEM_ID = "4bbf744d-a873-4ef0-b1f2-b1532bfb31db";
+
     @Mock private ImovelRepository imovelRepository;
     @Mock private ProprietarioRepository proprietarioRepository;
     @Mock private CorretorRepository corretorRepository;
@@ -111,7 +115,9 @@ class ImovelServiceTest {
             return imovel;
         });
         when(fileStorageService.salvarFotoImovel(any(), eq(42), anyInt()))
-                .thenAnswer(invocation -> "/uploads/imoveis/42/foto-" + invocation.getArgument(2) + ".jpg");
+                .thenAnswer(invocation -> "/imagens/imovel/42/" + (invocation.getArgument(2).equals(1)
+                        ? PRIMEIRA_IMAGEM_ID
+                        : SEGUNDA_IMAGEM_ID));
 
         List<FotoImovel> fotosSalvas = new ArrayList<>();
         when(fotoImovelRepository.save(any(FotoImovel.class))).thenAnswer(invocation -> {
@@ -135,6 +141,9 @@ class ImovelServiceTest {
         assertEquals(2, response.fotos().size());
         assertEquals(List.of(1, 2), response.fotos().stream().map(foto -> foto.ordem()).toList());
         assertEquals(List.of(false, true), response.fotos().stream().map(foto -> foto.capa()).toList());
+        assertEquals(List.of(1, 2), response.fotos().stream().map(foto -> foto.id()).toList());
+        assertEquals(List.of(PRIMEIRA_IMAGEM_ID, SEGUNDA_IMAGEM_ID),
+                response.fotos().stream().map(foto -> foto.imagemId()).toList());
         verify(fileStorageService).salvarFotoImovel(arquivos.get(0), 42, 1);
         verify(fileStorageService).salvarFotoImovel(arquivos.get(1), 42, 2);
     }
