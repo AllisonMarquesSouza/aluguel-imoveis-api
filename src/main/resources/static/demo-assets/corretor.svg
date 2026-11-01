@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Avatar genérico de demonstração">
+  <rect width="128" height="128" rx="64" fill="#e8eef5"/>
+  <circle cx="64" cy="45" r="23" fill="#8294a8"/>
+  <path d="M22 112c3-24 20-38 42-38s39 14 42 38" fill="#8294a8"/>
+</svg>

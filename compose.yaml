@@ -32,6 +32,7 @@ services:
       USERNAME: ${POSTGRES_USER:-meu_imovel}
       PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
       API_SECURITY_TOKEN_SECRET: ${API_SECURITY_TOKEN_SECRET:?Defina API_SECURITY_TOKEN_SECRET no arquivo .env}
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-demo}
     ports:
       - "${APP_PORT:-8080}:8080"
     volumes:

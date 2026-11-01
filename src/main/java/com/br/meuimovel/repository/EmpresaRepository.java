@@ -12,6 +12,7 @@ import java.util.Optional;
 public interface EmpresaRepository extends JpaRepository<Empresa, Integer> {
     boolean existsByDocumento(String documento);
     boolean existsByCreci(String creci);
+    Optional<Empresa> findByDocumento(String documento);
     Optional<Empresa> findByIdAndLogoMarcaUrl(Integer id, String logoMarcaUrl);
 
     @Query("select count(c) > 0 from Empresa e join e.cidadesAtuacao c " +
