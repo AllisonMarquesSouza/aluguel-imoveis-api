@@ -32,6 +32,17 @@ A API fica disponível em `http://localhost:8080` por padrão. O PostgreSQL fica
 
 O serviço da aplicação só inicia depois que o healthcheck `pg_isready` indicar que o PostgreSQL está pronto. O Flyway já está habilitado em `application.properties` e executa as migrations de `src/main/resources/db/migration` durante a inicialização da aplicação; depois, o Hibernate valida o schema (`ddl-auto=validate`). Não é necessário executar migrations manualmente.
 
+O Compose ativa o perfil Spring `demo` por padrão. Na primeira inicialização da API, esse perfil cria, se ainda não existirem, uma cidade em Recife, uma imobiliária ativa, um administrador e um corretor vinculado à imobiliária. O corretor usa um avatar SVG genérico servido pela aplicação. A carga não altera registros encontrados e não roda nos demais perfis Spring. Se o volume do PostgreSQL já tiver dados, os registros existentes são preservados e apenas dados de demonstração ausentes são criados.
+
+Credenciais locais de demonstração:
+
+| Perfil | E-mail | Senha |
+| --- | --- | --- |
+| Administrador | `admin@demo.meu-imovel.test` | `AdminDemo123!` |
+| Corretor | `corretor@demo.meu-imovel.test` | `CorretorDemo123!` |
+
+Autentique em `POST /auth/login` com `email` e `senha`, conforme o formato documentado abaixo. As senhas são codificadas com BCrypt antes de serem persistidas. Para personalizar as credenciais, defina `DEMO_ADMIN_EMAIL`, `DEMO_ADMIN_PASSWORD`, `DEMO_BROKER_EMAIL` e `DEMO_BROKER_PASSWORD` antes da primeira inicialização desses usuários. Alterar as variáveis depois que os usuários já existem não troca suas senhas.
+
 Os volumes nomeados `postgres_data` e `uploads_data` preservam, respectivamente, o banco e os arquivos enviados quando os containers são removidos. Para parar os serviços sem apagar os dados:
 
 ```bash
