@@ -9,6 +9,7 @@ CREATE TABLE imovel
     proprietario_id  INTEGER      NOT NULL,
 
     finalidade       VARCHAR(20)  NOT NULL,
+    natureza         VARCHAR(20) NOT NULL,
 
     valor_venda      NUMERIC(15, 2),
     valor_aluguel    NUMERIC(15, 2),
@@ -44,6 +45,9 @@ CREATE TABLE imovel
                            'VENDA',
                            'ALUGUEL',
                            'VENDA_E_ALUGUEL'
-                )
             )
+        ),
+
+    CONSTRAINT ck_imovel_natureza
+        CHECK (natureza IN ('CASA', 'TERRENO'))
 );

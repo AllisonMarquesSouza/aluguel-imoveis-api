@@ -3,6 +3,7 @@ package com.br.meuimovel.service;
 import com.br.meuimovel.dtos.caracteristica.CaracteristicaResponseDto;
 import com.br.meuimovel.dtos.imovel.*;
 import com.br.meuimovel.enums.FinalidadeImovel;
+import com.br.meuimovel.enums.NaturezaImovel;
 import com.br.meuimovel.enums.TipoImagem;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
@@ -45,6 +46,7 @@ public class ImovelService {
         }
 
         validarPrecos(createDto);
+        validarDadosNatureza(createDto);
         validarFotos(fotos, createDto.fotoCapaOrdem());
 
         Integer empresaId = empresa.getId();
@@ -139,6 +141,31 @@ public class ImovelService {
         }
     }
 
+    private void validarDadosNatureza(ImovelCreateDto dto) {
+        if (dto.natureza() == null) {
+            throw new ImovelInvalidoException("Informe a natureza do imóvel.");
+        }
+
+        if (dto.natureza() == NaturezaImovel.CASA) {
+            if (dto.casa() == null || dto.terreno() != null) {
+                throw new ImovelInvalidoException(
+                        "Para a natureza CASA, informe apenas os dados de casa.");
+            }
+            if (dto.casa().areaTerreno() != null && dto.casa().areaConstruida() != null
+                    && dto.casa().areaConstruida().compareTo(dto.casa().areaTerreno()) > 0) {
+                throw new ImovelInvalidoException(
+                        "A área construída não pode ser maior que a área do terreno.");
+            }
+            return;
+        }
+
+        if (dto.natureza() == NaturezaImovel.TERRENO
+                && (dto.terreno() == null || dto.casa() != null)) {
+            throw new ImovelInvalidoException(
+                    "Para a natureza TERRENO, informe apenas os dados do terreno.");
+        }
+    }
+
     private void validarFotos(List<MultipartFile> fotos, Integer fotoCapaOrdem) {
         if (fotos == null || fotos.isEmpty()) {
             throw new FotoInvalidaException("Envie ao menos uma foto do imóvel.");
@@ -170,6 +197,7 @@ public class ImovelService {
                 .corretor(corretor)
                 .proprietario(proprietario)
                 .finalidade(dto.finalidade())
+                .natureza(dto.natureza())
                 .valorVenda(dto.valorVenda())
                 .valorAluguel(dto.valorAluguel())
                 .valorCondominio(dto.valorCondominio())
@@ -177,6 +205,40 @@ public class ImovelService {
                 .descricao(dto.descricao())
                 .caracteristicas(caracteristicas)
                 .build();
+
+        if (dto.natureza() == NaturezaImovel.CASA) {
+            CasaCreateDto casaDto = dto.casa();
+            imovel.setCasa(Casa.builder()
+                    .imovel(imovel)
+                    .areaTerreno(casaDto.areaTerreno())
+                    .areaConstruida(casaDto.areaConstruida())
+                    .quartos(casaDto.quartos())
+                    .suites(casaDto.suites())
+                    .banheiros(casaDto.banheiros())
+                    .salas(casaDto.salas())
+                    .vagas(casaDto.vagas())
+                    .pavimentos(casaDto.pavimentos())
+                    .anoConstrucao(casaDto.anoConstrucao())
+                    .piscina(casaDto.piscina())
+                    .quintal(casaDto.quintal())
+                    .churrasqueira(casaDto.churrasqueira())
+                    .mobiliada(casaDto.mobiliada())
+                    .build());
+        } else if (dto.natureza() == NaturezaImovel.TERRENO) {
+            TerrenoCreateDto terrenoDto = dto.terreno();
+            imovel.setTerreno(Terreno.builder()
+                    .imovel(imovel)
+                    .areaTotal(terrenoDto.areaTotal())
+                    .frente(terrenoDto.frente())
+                    .fundo(terrenoDto.fundo())
+                    .lateralEsquerda(terrenoDto.lateralEsquerda())
+                    .lateralDireita(terrenoDto.lateralDireita())
+                    .topografia(terrenoDto.topografia())
+                    .muro(terrenoDto.muro())
+                    .esquina(terrenoDto.esquina())
+                    .usoPermitido(terrenoDto.usoPermitido().trim())
+                    .build());
+        }
 
         EnderecoImovel endereco = EnderecoImovel.builder()
                 .imovel(imovel)
@@ -213,10 +275,25 @@ public class ImovelService {
                         foto.getUrl(), foto.getOrdem(), foto.isCapa()))
                 .toList();
 
+        CasaResponseDto casaResponse = imovel.getCasa() == null ? null : new CasaResponseDto(
+                imovel.getCasa().getAreaTerreno(),
+                imovel.getCasa().getAreaConstruida(),
+                imovel.getCasa().getAreaTerreno().subtract(imovel.getCasa().getAreaConstruida()),
+                imovel.getCasa().getQuartos(), imovel.getCasa().getSuites(), imovel.getCasa().getBanheiros(),
+                imovel.getCasa().getSalas(), imovel.getCasa().getVagas(), imovel.getCasa().getPavimentos(),
+                imovel.getCasa().getAnoConstrucao(), imovel.getCasa().getPiscina(), imovel.getCasa().getQuintal(),
+                imovel.getCasa().getChurrasqueira(), imovel.getCasa().getMobiliada());
+        TerrenoResponseDto terrenoResponse = imovel.getTerreno() == null ? null : new TerrenoResponseDto(
+                imovel.getTerreno().getAreaTotal(), imovel.getTerreno().getFrente(), imovel.getTerreno().getFundo(),
+                imovel.getTerreno().getLateralEsquerda(), imovel.getTerreno().getLateralDireita(),
+                imovel.getTerreno().getTopografia(), imovel.getTerreno().getMuro(), imovel.getTerreno().getEsquina(),
+                imovel.getTerreno().getUsoPermitido());
+
         return new ImovelResponseDto(
                 imovel.getId(), imovel.getCodigo(), imovel.getTitulo(), imovel.getEmpresa().getId(),
                 imovel.getCorretor().getId(), imovel.getCorretor().getUsuario().getNome(),
                 imovel.getProprietario().getId(), imovel.getProprietario().getNome(), imovel.getFinalidade(),
+                imovel.getNatureza(), casaResponse, terrenoResponse,
                 imovel.getValorVenda(), imovel.getValorAluguel(), imovel.getValorCondominio(),
                 imovel.getValorIptu(), imovel.getDescricao(), enderecoResponse, caracteristicas, fotos);
     }
