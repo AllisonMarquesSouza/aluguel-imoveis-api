@@ -468,19 +468,35 @@ Cadastra imóvel. Consome `multipart/form-data` com `dto` (JSON) e uma ou mais p
 ```json
 {
   "codigo": "IM-2026-001",
-  "titulo": "Apartamento próximo ao parque",
+  "titulo": "Casa próxima ao parque",
   "proprietarioId": 31,
   "finalidade": "VENDA",
   "valorVenda": 450000.00,
   "valorAluguel": null,
   "valorCondominio": 650.00,
   "valorIptu": 1200.00,
-  "descricao": "Apartamento com varanda e duas vagas.",
+  "descricao": "Casa com quintal e duas vagas.",
+  "natureza": "CASA",
+  "casa": {
+    "areaTerreno": 250.00,
+    "areaConstruida": 120.00,
+    "quartos": 3,
+    "suites": 1,
+    "banheiros": 2,
+    "salas": 2,
+    "vagas": 2,
+    "pavimentos": 2,
+    "anoConstrucao": 2018,
+    "piscina": false,
+    "quintal": true,
+    "churrasqueira": true,
+    "mobiliada": false
+  },
   "endereco": {
     "cep": "50000000",
     "logradouro": "Rua Exemplo",
     "numero": "100",
-    "complemento": "Apto 502",
+    "complemento": "Casa 1",
     "bairro": "Centro",
     "cidadeId": 1,
     "latitude": -8.05,
@@ -493,12 +509,30 @@ Cadastra imóvel. Consome `multipart/form-data` com `dto` (JSON) e uma ou mais p
 
 `codigo` aceita até 50 caracteres e `titulo` até 180. `finalidade` aceita `VENDA`, `ALUGUEL` ou `VENDA_E_ALUGUEL`. O preço de venda é obrigatório para `VENDA` e `VENDA_E_ALUGUEL`; o de aluguel é obrigatório para `ALUGUEL` e `VENDA_E_ALUGUEL`. Preços não podem ser negativos e aceitam até duas casas decimais. CEP deve ter oito dígitos; latitude deve estar entre `-90` e `90`, e longitude entre `-180` e `180`. Cidade e proprietário precisam existir; proprietário e corretor devem pertencer à empresa autenticada e a empresa precisa atuar na cidade informada. Todas as características informadas devem existir. O código é único dentro da empresa.
 
+`natureza` aceita `CASA` ou `TERRENO`. Envie somente o bloco correspondente à natureza escolhida: `casa` para casa ou `terreno` para terreno. Os campos desses blocos são obrigatórios; áreas e medidas usam metros quadrados e metros, respectivamente. Contagens são inteiros não negativos. Para casa, `areaConstruida` não pode superar `areaTerreno`; `areaLivre` é calculada pela API como `areaTerreno - areaConstruida` e aparece somente na resposta. Para terreno, `topografia` aceita `PLANO`, `ACLIVE` ou `DECLIVE`; `lateralEsquerda` e `lateralDireita` representam as duas laterais, e `usoPermitido` é texto livre.
+
+Exemplo do bloco `terreno`:
+
+```json
+{
+  "areaTotal": 300.00,
+  "frente": 10.00,
+  "fundo": 10.00,
+  "lateralEsquerda": 30.00,
+  "lateralDireita": 30.00,
+  "topografia": "PLANO",
+  "muro": false,
+  "esquina": false,
+  "usoPermitido": "Residencial"
+}
+```
+
 Envie cada arquivo com o mesmo nome de parte:
 
 ```bash
 curl -X POST http://localhost:8080/imovel \
   -H 'Authorization: Bearer <jwt>' \
-  -F 'dto={"codigo":"IM-2026-001","titulo":"Apartamento próximo ao parque","proprietarioId":31,"finalidade":"VENDA","valorVenda":450000,"endereco":{"cep":"50000000","logradouro":"Rua Exemplo","numero":"100","bairro":"Centro","cidadeId":1,"latitude":-8.05,"longitude":-34.9},"caracteristicasIds":[3,8],"fotoCapaOrdem":1};type=application/json' \
+  -F 'dto={"codigo":"IM-2026-001","titulo":"Casa próxima ao parque","proprietarioId":31,"finalidade":"VENDA","valorVenda":450000,"natureza":"CASA","casa":{"areaTerreno":250,"areaConstruida":120,"quartos":3,"suites":1,"banheiros":2,"salas":2,"vagas":2,"pavimentos":2,"anoConstrucao":2018,"piscina":false,"quintal":true,"churrasqueira":true,"mobiliada":false},"endereco":{"cep":"50000000","logradouro":"Rua Exemplo","numero":"100","bairro":"Centro","cidadeId":1,"latitude":-8.05,"longitude":-34.9},"caracteristicasIds":[3,8],"fotoCapaOrdem":1};type=application/json' \
   -F 'fotos=@frente.jpg;type=image/jpeg' \
   -F 'fotos=@sala.webp;type=image/webp'
 ```
@@ -509,24 +543,42 @@ curl -X POST http://localhost:8080/imovel \
 {
   "id": 88,
   "codigo": "IM-2026-001",
-  "titulo": "Apartamento próximo ao parque",
+  "titulo": "Casa próxima ao parque",
   "empresaId": 12,
   "corretorId": 7,
   "nomeCorretor": "João Silva",
   "proprietarioId": 31,
   "nomeProprietario": "Ana Souza",
   "finalidade": "VENDA",
+  "natureza": "CASA",
+  "casa": {
+    "areaTerreno": 250.00,
+    "areaConstruida": 120.00,
+    "areaLivre": 130.00,
+    "quartos": 3,
+    "suites": 1,
+    "banheiros": 2,
+    "salas": 2,
+    "vagas": 2,
+    "pavimentos": 2,
+    "anoConstrucao": 2018,
+    "piscina": false,
+    "quintal": true,
+    "churrasqueira": true,
+    "mobiliada": false
+  },
+  "terreno": null,
   "valorVenda": 450000.00,
   "valorAluguel": null,
   "valorCondominio": 650.00,
   "valorIptu": 1200.00,
-  "descricao": "Apartamento com varanda e duas vagas.",
+  "descricao": "Casa com quintal e duas vagas.",
   "endereco": {
     "id": 90,
     "cep": "50000000",
     "logradouro": "Rua Exemplo",
     "numero": "100",
-    "complemento": "Apto 502",
+    "complemento": "Casa 1",
     "bairro": "Centro",
     "cidadeId": 1,
     "cidade": "Recife",

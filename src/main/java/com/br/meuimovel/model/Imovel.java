@@ -1,6 +1,7 @@
 package com.br.meuimovel.model;
 
 import com.br.meuimovel.enums.FinalidadeImovel;
+import com.br.meuimovel.enums.NaturezaImovel;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -45,6 +46,10 @@ public class Imovel {
     @Column(nullable = false, length = 20)
     private FinalidadeImovel finalidade;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private NaturezaImovel natureza;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "imovel_caracteristica",
@@ -60,6 +65,12 @@ public class Imovel {
             orphanRemoval = true
     )
     private EnderecoImovel endereco;
+
+    @OneToOne(mappedBy = "imovel", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Casa casa;
+
+    @OneToOne(mappedBy = "imovel", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Terreno terreno;
 
     @OneToMany(
             mappedBy = "imovel",

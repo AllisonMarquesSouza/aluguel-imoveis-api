@@ -1,6 +1,7 @@
 package com.br.meuimovel.dtos.imovel;
 
 import com.br.meuimovel.enums.FinalidadeImovel;
+import com.br.meuimovel.enums.NaturezaImovel;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
@@ -40,6 +41,15 @@ public record ImovelCreateDto(
     BigDecimal valorIptu,
 
     String descricao,
+
+    @NotNull
+    NaturezaImovel natureza,
+
+    @Valid
+    CasaCreateDto casa,
+
+    @Valid
+    TerrenoCreateDto terreno,
 
     @NotNull
     @Valid

@@ -1,10 +1,14 @@
 package com.br.meuimovel.service;
 
 import com.br.meuimovel.dtos.imovel.EnderecoImovelDto;
+import com.br.meuimovel.dtos.imovel.CasaCreateDto;
 import com.br.meuimovel.dtos.imovel.ImovelCreateDto;
 import com.br.meuimovel.dtos.imovel.ImovelResponseDto;
+import com.br.meuimovel.dtos.imovel.TerrenoCreateDto;
 import com.br.meuimovel.dtos.caracteristica.CaracteristicaResponseDto;
 import com.br.meuimovel.enums.FinalidadeImovel;
+import com.br.meuimovel.enums.NaturezaImovel;
+import com.br.meuimovel.enums.TopografiaTerreno;
 import com.br.meuimovel.enums.TipoDocumento;
 import com.br.meuimovel.enums.Uf;
 import com.br.meuimovel.enums.UsuarioPerfil;
@@ -83,6 +87,42 @@ class ImovelServiceTest {
     }
 
     @Test
+    void createRejectsHouseWithBuiltAreaLargerThanLandArea() {
+        autenticarCorretor();
+        ImovelCreateDto base = dto(FinalidadeImovel.VENDA, BigDecimal.valueOf(100_000), null, 1);
+        CasaCreateDto casa = casaDto(BigDecimal.valueOf(100), BigDecimal.valueOf(120));
+        ImovelCreateDto invalidDto = new ImovelCreateDto(base.codigo(), base.titulo(), base.proprietarioId(),
+                base.finalidade(), base.valorVenda(), base.valorAluguel(), base.valorCondominio(), base.valorIptu(),
+                base.descricao(), NaturezaImovel.CASA, casa, null, base.endereco(), base.caracteristicasIds(),
+                base.fotoCapaOrdem());
+
+        ImovelInvalidoException exception = assertThrows(
+                ImovelInvalidoException.class,
+                () -> imovelService.create(invalidDto, List.of(foto("frente.jpg"))));
+
+        assertEquals("A área construída não pode ser maior que a área do terreno.", exception.getMessage());
+        verifyNoInteractions(imovelRepository);
+    }
+
+    @Test
+    void createRejectsDetailsThatDoNotMatchSelectedNature() {
+        autenticarCorretor();
+        ImovelCreateDto base = dto(FinalidadeImovel.VENDA, BigDecimal.valueOf(100_000), null, 1);
+        ImovelCreateDto casaWithLandDetails = new ImovelCreateDto(base.codigo(), base.titulo(),
+                base.proprietarioId(), base.finalidade(), base.valorVenda(), base.valorAluguel(), base.valorCondominio(),
+                base.valorIptu(), base.descricao(), NaturezaImovel.CASA,
+                casaDto(BigDecimal.valueOf(100), BigDecimal.valueOf(80)), terrenoDto(),
+                base.endereco(), base.caracteristicasIds(), base.fotoCapaOrdem());
+
+        ImovelInvalidoException exception = assertThrows(
+                ImovelInvalidoException.class,
+                () -> imovelService.create(casaWithLandDetails, List.of(foto("frente.jpg"))));
+
+        assertTrue(exception.getMessage().contains("apenas os dados de casa"));
+        verifyNoInteractions(imovelRepository);
+    }
+
+    @Test
     void createAssociatesSelectedCharacteristicsAndSavesPhotosInOrderWithCover() {
         Usuario usuario = autenticarCorretor();
         Empresa empresa = usuario.getEmpresa();
@@ -138,6 +178,9 @@ class ImovelServiceTest {
         ImovelResponseDto response = imovelService.create(dto, new ArrayList<>(arquivos));
 
         assertEquals(Set.of(new CaracteristicaResponseDto(30, "Piscina")), response.caracteristicas());
+        assertEquals(NaturezaImovel.CASA, response.natureza());
+        assertEquals(BigDecimal.valueOf(100), response.casa().areaLivre());
+        assertNull(response.terreno());
         assertEquals(2, response.fotos().size());
         assertEquals(List.of(1, 2), response.fotos().stream().map(foto -> foto.ordem()).toList());
         assertEquals(List.of(false, true), response.fotos().stream().map(foto -> foto.capa()).toList());
@@ -146,6 +189,53 @@ class ImovelServiceTest {
                 response.fotos().stream().map(foto -> foto.imagemId()).toList());
         verify(fileStorageService).salvarFotoImovel(arquivos.get(0), 42, 1);
         verify(fileStorageService).salvarFotoImovel(arquivos.get(1), 42, 2);
+    }
+
+    @Test
+    void createStoresAndReturnsTerrainDetailsWithoutHouseFields() {
+        Usuario usuario = autenticarCorretor();
+        Empresa empresa = usuario.getEmpresa();
+        Proprietario proprietario = Proprietario.builder()
+                .id(15).empresa(empresa).tipoDocumento(TipoDocumento.CPF).documento("52998224725")
+                .nome("Ana Souza").telefone("81999999999").email("ana@example.com").build();
+        Corretor corretor = new Corretor(usuario, "/foto-corretor.jpg", "CRECI-1", "81999999999",
+                "81999999999", "Apresentação");
+        corretor.setId(usuario.getId());
+        Cidade cidade = new Cidade("Recife", Uf.PE);
+        cidade.setId(20);
+
+        when(imovelRepository.existsByEmpresa_IdAndCodigo(empresa.getId(), "IM-1")).thenReturn(false);
+        when(corretorRepository.findById(usuario.getId())).thenReturn(Optional.of(corretor));
+        when(proprietarioRepository.findByIdAndEmpresa_Id(15, empresa.getId())).thenReturn(Optional.of(proprietario));
+        when(cidadeRepository.findById(20)).thenReturn(Optional.of(cidade));
+        when(empresaRepository.atuaNaCidade(empresa.getId(), 20)).thenReturn(true);
+        when(imovelRepository.save(any(Imovel.class))).thenAnswer(invocation -> {
+            Imovel imovel = invocation.getArgument(0);
+            imovel.setId(42);
+            return imovel;
+        });
+        when(fileStorageService.salvarFotoImovel(any(), eq(42), eq(1)))
+                .thenReturn("/imagens/imovel/42/" + PRIMEIRA_IMAGEM_ID);
+        when(fotoImovelRepository.save(any(FotoImovel.class))).thenAnswer(invocation -> {
+            FotoImovel foto = invocation.getArgument(0);
+            foto.setId(1);
+            return foto;
+        });
+        when(fotoImovelRepository.findAllByImovel_IdOrderByOrdemAsc(42))
+                .thenAnswer(invocation -> List.of(fotoEntity(42)));
+
+        ImovelCreateDto base = dto(FinalidadeImovel.VENDA, BigDecimal.valueOf(100_000), null, 1);
+        ImovelCreateDto terrenoDto = new ImovelCreateDto(base.codigo(), base.titulo(), base.proprietarioId(),
+                base.finalidade(), base.valorVenda(), base.valorAluguel(), base.valorCondominio(), base.valorIptu(),
+                base.descricao(), NaturezaImovel.TERRENO, null, terrenoDto(), base.endereco(),
+                base.caracteristicasIds(), base.fotoCapaOrdem());
+
+        ImovelResponseDto response = imovelService.create(terrenoDto, List.of(foto("frente.jpg")));
+
+        assertEquals(NaturezaImovel.TERRENO, response.natureza());
+        assertNotNull(response.terreno());
+        assertEquals("Uso residencial", response.terreno().usoPermitido());
+        assertNull(response.casa());
     }
 
     @Test
@@ -216,7 +306,30 @@ class ImovelServiceTest {
                 "50000000", "Rua Exemplo", "10", null, "Centro", 20,
                 BigDecimal.valueOf(-8.05), BigDecimal.valueOf(-34.9));
         return new ImovelCreateDto("IM-1", "Imóvel de teste", 15, finalidade,
-                valorVenda, valorAluguel, null, null, "Descrição", endereco, caracteristicasIds, fotoCapaOrdem);
+                valorVenda, valorAluguel, null, null, "Descrição", NaturezaImovel.CASA,
+                casaDto(BigDecimal.valueOf(150), BigDecimal.valueOf(50)), null,
+                endereco, caracteristicasIds, fotoCapaOrdem);
+    }
+
+    private CasaCreateDto casaDto(BigDecimal areaTerreno, BigDecimal areaConstruida) {
+        return new CasaCreateDto(areaTerreno, areaConstruida, 3, 1, 2, 1, 2, 1, 2010,
+                true, true, true, false);
+    }
+
+    private TerrenoCreateDto terrenoDto() {
+        return new TerrenoCreateDto(BigDecimal.valueOf(300), BigDecimal.valueOf(10), BigDecimal.valueOf(10),
+                BigDecimal.valueOf(30), BigDecimal.valueOf(30), TopografiaTerreno.PLANO,
+                false, false, "Uso residencial");
+    }
+
+    private FotoImovel fotoEntity(Integer imovelId) {
+        FotoImovel foto = new FotoImovel();
+        foto.setId(1);
+        foto.setImovel(Imovel.builder().id(imovelId).build());
+        foto.setUrl("/imagens/imovel/" + imovelId + "/" + PRIMEIRA_IMAGEM_ID);
+        foto.setOrdem(1);
+        foto.setCapa(true);
+        return foto;
     }
 
     private MockMultipartFile foto(String nome) {
