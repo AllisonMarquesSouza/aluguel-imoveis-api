@@ -1,6 +1,6 @@
 # Status do projeto
 
-> Atualizado em 27/10/2026. Consulte os requisitos e a arquitetura para o detalhamento das regras de negócio e do banco.
+> Atualizado em 14/11/2026. Consulte os requisitos e a arquitetura para o detalhamento das regras de negócio e do banco.
 
 ## W01 — Empresa e usuários
 
@@ -94,10 +94,28 @@
 
 - Atualização e remoção de imóveis
 - Publicação formal do imóvel; o cadastro exige endereço, cidade e coordenadas, mas o modelo atual não possui estado ou endpoint de publicação
-- Naturezas específicas: casa, apartamento, terreno e rural
+- Naturezas ainda fora do escopo W04: apartamento e rural
 - Loteamentos, quadras e lotes
 - Vitrine pública completa e filtros do aplicativo
 - Favoritos e funcionalidades previstas para etapas posteriores
+
+## W05 — Casa e terreno livre
+
+- [x] Incluir a natureza `CASA` ou `TERRENO` na migration do imóvel; criar tabelas `casa` (V13) e `terreno` (V14)
+- [x] Cadastrar dados de casa: áreas, cômodos, vagas, pavimentos, ano e características
+- [x] Calcular `areaLivre` como área do terreno menos área construída, sem aceitar ou persistir esse campo
+- [x] Recusar área construída superior à área do terreno com mensagem clara
+- [x] Cadastrar dados de terreno: área, frente, fundo, laterais, topografia, muro, esquina e uso permitido
+- [x] Retornar os dados do bloco correspondente à natureza no DTO do imóvel (o outro bloco fica nulo)
+- [ ] Adaptar os campos da tela conforme a natureza escolhida — este repositório contém a API, sem interface web
+- [x] Cobrir criação das duas naturezas, cálculo e validação com testes de serviço
+
+### Verificação
+
+- [x] `./mvnw -q -Dtest=ImovelServiceTest test` — 9 testes passaram
+- [x] `./mvnw -q -Dtest='!MeuImovelApplicationTests' test` — 92 testes passaram
+- [x] `git diff --check`
+- [ ] `MeuImovelApplicationTests.contextLoads` — não inicializou: PostgreSQL local indisponível em `localhost:5432` (conexão recusada, SQLState `08001`); a migration ainda precisa ser validada com o banco acessível
 
 ## Instrução de continuidade
 
