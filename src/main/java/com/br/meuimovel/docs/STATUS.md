@@ -1,6 +1,6 @@
 # Status do projeto
 
-> Atualizado em 14/11/2026. Consulte os requisitos e a arquitetura para o detalhamento das regras de negócio e do banco.
+> Atualizado em 16/11/2026. Consulte os requisitos e a arquitetura para o detalhamento das regras de negócio e do banco.
 
 ## W01 — Empresa e usuários
 
@@ -94,7 +94,7 @@
 
 - Atualização e remoção de imóveis
 - Publicação formal do imóvel; o cadastro exige endereço, cidade e coordenadas, mas o modelo atual não possui estado ou endpoint de publicação
-- Naturezas ainda fora do escopo W04: apartamento e rural
+- Naturezas fora do escopo original W04: apartamento (implementado na W06) e rural
 - Loteamentos, quadras e lotes
 - Vitrine pública completa e filtros do aplicativo
 - Favoritos e funcionalidades previstas para etapas posteriores
@@ -116,6 +116,26 @@
 - [x] `./mvnw -q -Dtest='!MeuImovelApplicationTests' test` — 92 testes passaram
 - [x] `git diff --check`
 - [ ] `MeuImovelApplicationTests.contextLoads` — não inicializou: PostgreSQL local indisponível em `localhost:5432` (conexão recusada, SQLState `08001`); a migration ainda precisa ser validada com o banco acessível
+
+## W06 — Prédio e apartamento
+
+- [x] Incluir `APARTAMENTO` na natureza do imóvel em V9; criar prédio (V15) e apartamento (V16) em migrations separadas
+- [x] Cadastrar, listar, consultar e atualizar prédios dentro da empresa do corretor autenticado
+- [x] Validar a cidade do endereço do prédio na área de atuação da empresa
+- [x] Cadastrar apartamento como natureza de imóvel e vinculá-lo somente a prédio da mesma empresa
+- [x] Expor os dados do prédio atualizado no detalhe das unidades, incluindo o endereço compartilhado
+- [x] Recusar duplicidade de andar e número no serviço e no banco
+- [x] Documentar os endpoints de prédio e os dados de apartamento no `README.md`
+- [ ] Adaptar os campos da tela conforme a natureza — este repositório contém a API, sem interface web
+- [x] Cobrir cadastro e consulta de prédio, isolamento por empresa, atualização, cidade e cadastro/duplicidade de apartamento com testes unitários
+
+### Verificação
+
+- [x] `./mvnw -q -DskipTests compile`
+- [x] `./mvnw -q -Dtest=ImovelServiceTest,PredioServiceTest test` — 17 testes passaram
+- [x] `./mvnw -q -Dtest='!MeuImovelApplicationTests' test` — 100 testes passaram
+- [x] `git diff --check`
+- [ ] `MeuImovelApplicationTests.contextLoads` e validação de V15/V16 — não inicializaram: conexão ao PostgreSQL bloqueada no ambiente (`SQLState 08001`, `SocketException: Operation not permitted`)
 
 ## Instrução de continuidade
 

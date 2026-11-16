@@ -455,6 +455,44 @@ Cadastra proprietário na empresa do corretor autenticado.
 }
 ```
 
+## Prédios
+
+As rotas de prédios exigem `CORRETOR` ativo associado a uma empresa ativa. A empresa é obtida do usuário autenticado, e o prédio é listado, consultado e alterado somente dentro desse tenant. O endereço completo inclui CEP, logradouro, número, bairro, cidade e coordenadas; a cidade deve estar na área de atuação da empresa.
+
+### `POST /predio`
+
+Cadastra um prédio para reutilização nas unidades. Resposta `201 Created` com `PredioResponseDto`.
+
+```json
+{
+  "nome": "Edifício Atlântico",
+  "endereco": {
+    "cep": "50000000",
+    "logradouro": "Rua do Sol",
+    "numero": "120",
+    "complemento": null,
+    "bairro": "Boa Vista",
+    "cidadeId": 1,
+    "latitude": -8.05,
+    "longitude": -34.9
+  },
+  "numeroAndares": 12,
+  "unidadesPorAndar": 4,
+  "anoConstrucao": 2018,
+  "elevadores": 2,
+  "portaria24h": true,
+  "piscina": true,
+  "academia": true,
+  "salaoFestas": true,
+  "playground": false,
+  "valorCondominioBase": 650.00
+}
+```
+
+### `GET /predio`, `GET /predio/{id}` e `PUT /predio/{id}`
+
+Lista os prédios da empresa, consulta um prédio ou substitui seus dados. A atualização grava no mesmo prédio associado às unidades, então o próximo detalhe de cada apartamento já apresenta os dados atualizados. IDs de outra empresa retornam `404`. O `PUT` recebe o mesmo formato do `POST` e responde `200 OK`.
+
 ## Imóveis
 
 As rotas de imóveis exigem `CORRETOR` ativo associado a uma empresa ativa. Os IDs de proprietário, cidade e características são validados no contexto do cadastro; o cliente não escolhe a empresa nem o corretor responsável, que vêm do usuário autenticado.
@@ -509,7 +547,91 @@ Cadastra imóvel. Consome `multipart/form-data` com `dto` (JSON) e uma ou mais p
 
 `codigo` aceita até 50 caracteres e `titulo` até 180. `finalidade` aceita `VENDA`, `ALUGUEL` ou `VENDA_E_ALUGUEL`. O preço de venda é obrigatório para `VENDA` e `VENDA_E_ALUGUEL`; o de aluguel é obrigatório para `ALUGUEL` e `VENDA_E_ALUGUEL`. Preços não podem ser negativos e aceitam até duas casas decimais. CEP deve ter oito dígitos; latitude deve estar entre `-90` e `90`, e longitude entre `-180` e `180`. Cidade e proprietário precisam existir; proprietário e corretor devem pertencer à empresa autenticada e a empresa precisa atuar na cidade informada. Todas as características informadas devem existir. O código é único dentro da empresa.
 
-`natureza` aceita `CASA` ou `TERRENO`. Envie somente o bloco correspondente à natureza escolhida: `casa` para casa ou `terreno` para terreno. Os campos desses blocos são obrigatórios; áreas e medidas usam metros quadrados e metros, respectivamente. Contagens são inteiros não negativos. Para casa, `areaConstruida` não pode superar `areaTerreno`; `areaLivre` é calculada pela API como `areaTerreno - areaConstruida` e aparece somente na resposta. Para terreno, `topografia` aceita `PLANO`, `ACLIVE` ou `DECLIVE`; `lateralEsquerda` e `lateralDireita` representam as duas laterais, e `usoPermitido` é texto livre.
+`natureza` aceita `CASA`, `TERRENO` ou `APARTAMENTO`. Envie somente o bloco correspondente à natureza escolhida: `casa`, `terreno` ou `apartamento`. Para casa e terreno, `endereco` continua obrigatório. Para apartamento, omita `endereco`: o endereço vem do prédio vinculado.
+
+Para casa e terreno, os campos dos blocos são obrigatórios; áreas e medidas usam metros quadrados e metros, respectivamente. Contagens são inteiros não negativos. Para casa, `areaConstruida` não pode superar `areaTerreno`; `areaLivre` é calculada pela API como `areaTerreno - areaConstruida` e aparece somente na resposta. Para terreno, `topografia` aceita `PLANO`, `ACLIVE` ou `DECLIVE`; `lateralEsquerda` e `lateralDireita` representam as duas laterais, e `usoPermitido` é texto livre.
+
+No apartamento, `apartamento.predioId` deve apontar para um prédio da empresa autenticada. Informe `andar`, `numero`, `areaPrivativa`, `areaTotal`, quartos, suítes, banheiros, vagas, `varanda` e `posicaoSolar`. As áreas são positivas e a área total deve ser maior ou igual à privativa; contagens são não negativas. `posicaoSolar` é texto livre. O mesmo número normalizado não pode aparecer no mesmo andar e prédio; a API remove espaços nas pontas e converte o número para maiúsculas antes de salvar.
+
+Exemplo do bloco `apartamento`:
+
+```json
+{
+  "predioId": 44,
+  "andar": 4,
+  "numero": "401A",
+  "areaPrivativa": 80.00,
+  "areaTotal": 95.00,
+  "quartos": 3,
+  "suites": 1,
+  "banheiros": 2,
+  "vagas": 1,
+  "varanda": true,
+  "posicaoSolar": "Leste"
+}
+```
+
+O detalhe do imóvel inclui `apartamento` com os dados da unidade e um `predio` aninhado com o cadastro compartilhado. O campo comum `endereco` também reflete o endereço atual do prédio; seu `id` vem nulo porque não há uma cópia do endereço na tabela `endereco_imovel` para apartamentos. Exemplo da parte específica da resposta:
+
+```json
+{
+  "natureza": "APARTAMENTO",
+  "casa": null,
+  "terreno": null,
+  "apartamento": {
+    "andar": 4,
+    "numero": "401A",
+    "areaPrivativa": 80.00,
+    "areaTotal": 95.00,
+    "quartos": 3,
+    "suites": 1,
+    "banheiros": 2,
+    "vagas": 1,
+    "varanda": true,
+    "posicaoSolar": "Leste",
+    "predio": {
+      "id": 44,
+      "empresaId": 12,
+      "nome": "Edifício Atlântico",
+      "endereco": {
+        "cep": "50000000",
+        "logradouro": "Rua do Sol",
+        "numero": "120",
+        "complemento": null,
+        "bairro": "Boa Vista",
+        "cidadeId": 1,
+        "cidade": "Recife",
+        "uf": "PE",
+        "latitude": -8.05,
+        "longitude": -34.9
+      },
+      "numeroAndares": 12,
+      "unidadesPorAndar": 4,
+      "anoConstrucao": 2018,
+      "elevadores": 2,
+      "portaria24h": true,
+      "piscina": true,
+      "academia": true,
+      "salaoFestas": true,
+      "playground": false,
+      "valorCondominioBase": 650.00
+    }
+  },
+  "endereco": {
+    "id": null,
+    "cep": "50000000",
+    "logradouro": "Rua do Sol",
+    "numero": "120",
+    "complemento": null,
+    "bairro": "Boa Vista",
+    "cidadeId": 1,
+    "cidade": "Recife",
+    "uf": "PE",
+    "latitude": -8.05,
+    "longitude": -34.9
+  }
+}
+```
 
 Exemplo do bloco `terreno`:
 

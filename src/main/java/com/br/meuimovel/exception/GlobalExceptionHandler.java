@@ -90,6 +90,13 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(PredioNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handlePredioNotFoundException(PredioNotFoundException exception) {
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.NOT_FOUND, LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(ImagemNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleImagemNotFoundException(ImagemNotFoundException exception) {
         ErrorResponse errorResponse = new ErrorResponse(exception.getMessage(), HttpStatus.NOT_FOUND, LocalDateTime.now());
@@ -167,6 +174,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ImovelAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleImovelAlreadyExistsException(ImovelAlreadyExistsException exception) {
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.CONFLICT, LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(ApartamentoAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleApartamentoAlreadyExistsException(
+            ApartamentoAlreadyExistsException exception) {
         ErrorResponse errorResponse = new ErrorResponse
                 (exception.getMessage(), HttpStatus.CONFLICT, LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);

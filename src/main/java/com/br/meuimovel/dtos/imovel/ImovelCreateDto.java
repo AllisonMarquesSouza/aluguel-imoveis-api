@@ -51,12 +51,14 @@ public record ImovelCreateDto(
     @Valid
     TerrenoCreateDto terreno,
 
-    @NotNull
     @Valid
     EnderecoImovelDto endereco,
 
     Set<Integer> caracteristicasIds,
 
     @Min(1)
-    Integer fotoCapaOrdem
+    Integer fotoCapaOrdem,
+
+    @Valid
+    ApartamentoCreateDto apartamento
 ) {}
