@@ -9,6 +9,7 @@ import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
 import com.br.meuimovel.exception.*;
 import com.br.meuimovel.model.*;
+import com.br.meuimovel.mapper.PredioMapper;
 import com.br.meuimovel.repository.*;
 import com.br.meuimovel.storage.FileStorageService;
 import com.br.meuimovel.storage.ImagemUrl;
@@ -28,6 +29,8 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class ImovelService {
     private final ImovelRepository imovelRepository;
+    private final PredioRepository predioRepository;
+    private final ApartamentoRepository apartamentoRepository;
     private final ProprietarioRepository proprietarioRepository;
     private final CorretorRepository corretorRepository;
     private final CidadeRepository cidadeRepository;
@@ -62,15 +65,32 @@ public class ImovelService {
                 .findByIdAndEmpresa_Id(createDto.proprietarioId(), empresaId)
                 .orElseThrow(() -> new ProprietarioNotFoundException(
                         "Proprietário não encontrado nesta empresa."));
-        Cidade cidade = cidadeRepository.findById(createDto.endereco().cidadeId())
-                .orElseThrow(() -> new CidadeNotFoundException("Cidade do imóvel não encontrada."));
+        Predio predio = null;
+        Cidade cidade;
+        if (createDto.natureza() == NaturezaImovel.APARTAMENTO) {
+            predio = predioRepository.findByIdAndEmpresa_Id(createDto.apartamento().predioId(), empresaId)
+                    .orElseThrow(() -> new PredioNotFoundException("Prédio não encontrado nesta empresa."));
+            String numeroUnidade = normalizarNumeroUnidade(createDto.apartamento().numero());
+            if (apartamentoRepository.existsByPredio_IdAndAndarAndNumeroIgnoreCase(
+                    predio.getId(), createDto.apartamento().andar(), numeroUnidade)) {
+                throw new ApartamentoAlreadyExistsException(
+                        "Já existe um apartamento com esse andar e número no prédio.");
+            }
+            cidade = predio.getCidade();
+            if (!empresaRepository.atuaNaCidade(empresaId, cidade.getId())) {
+                throw new ImovelInvalidoException("A cidade do prédio não pertence à área de atuação da empresa.");
+            }
+        } else {
+            cidade = cidadeRepository.findById(createDto.endereco().cidadeId())
+                    .orElseThrow(() -> new CidadeNotFoundException("Cidade do imóvel não encontrada."));
 
-        if (!empresaRepository.atuaNaCidade(empresaId, cidade.getId())) {
-            throw new ImovelInvalidoException("A cidade não pertence à área de atuação da empresa.");
+            if (!empresaRepository.atuaNaCidade(empresaId, cidade.getId())) {
+                throw new ImovelInvalidoException("A cidade não pertence à área de atuação da empresa.");
+            }
         }
 
         Set<Caracteristica> caracteristicas = carregarCaracteristicas(createDto.caracteristicasIds());
-        Imovel imovel = criarImovel(createDto, empresa, corretor, proprietario, cidade, caracteristicas, codigo);
+        Imovel imovel = criarImovel(createDto, empresa, corretor, proprietario, cidade, predio, caracteristicas, codigo);
         imovel = imovelRepository.save(imovel);
 
         List<String> arquivosSalvos = new ArrayList<>();
@@ -147,9 +167,9 @@ public class ImovelService {
         }
 
         if (dto.natureza() == NaturezaImovel.CASA) {
-            if (dto.casa() == null || dto.terreno() != null) {
+            if (dto.casa() == null || dto.terreno() != null || dto.apartamento() != null || dto.endereco() == null) {
                 throw new ImovelInvalidoException(
-                        "Para a natureza CASA, informe apenas os dados de casa.");
+                        "Para a natureza CASA, informe apenas os dados de casa e o endereço do imóvel.");
             }
             if (dto.casa().areaTerreno() != null && dto.casa().areaConstruida() != null
                     && dto.casa().areaConstruida().compareTo(dto.casa().areaTerreno()) > 0) {
@@ -160,9 +180,20 @@ public class ImovelService {
         }
 
         if (dto.natureza() == NaturezaImovel.TERRENO
-                && (dto.terreno() == null || dto.casa() != null)) {
+                && (dto.terreno() == null || dto.casa() != null || dto.apartamento() != null || dto.endereco() == null)) {
             throw new ImovelInvalidoException(
-                    "Para a natureza TERRENO, informe apenas os dados do terreno.");
+                    "Para a natureza TERRENO, informe apenas os dados do terreno e o endereço do imóvel.");
+        }
+
+        if (dto.natureza() == NaturezaImovel.APARTAMENTO) {
+            if (dto.apartamento() == null || dto.casa() != null || dto.terreno() != null || dto.endereco() != null) {
+                throw new ImovelInvalidoException(
+                        "Para a natureza APARTAMENTO, informe os dados da unidade e um prédio, sem endereço separado.");
+            }
+            if (dto.apartamento().areaTotal() != null && dto.apartamento().areaPrivativa() != null
+                    && dto.apartamento().areaTotal().compareTo(dto.apartamento().areaPrivativa()) < 0) {
+                throw new ImovelInvalidoException("A área total não pode ser menor que a área privativa.");
+            }
         }
     }
 
@@ -188,7 +219,7 @@ public class ImovelService {
     }
 
     private Imovel criarImovel(ImovelCreateDto dto, Empresa empresa, Corretor corretor,
-                               Proprietario proprietario, Cidade cidade,
+                               Proprietario proprietario, Cidade cidade, Predio predio,
                                Set<Caracteristica> caracteristicas, String codigo) {
         Imovel imovel = Imovel.builder()
                 .codigo(codigo)
@@ -238,30 +269,53 @@ public class ImovelService {
                     .esquina(terrenoDto.esquina())
                     .usoPermitido(terrenoDto.usoPermitido().trim())
                     .build());
+        } else if (dto.natureza() == NaturezaImovel.APARTAMENTO) {
+            ApartamentoCreateDto apartamentoDto = dto.apartamento();
+            imovel.setApartamento(Apartamento.builder()
+                    .imovel(imovel)
+                    .predio(predio)
+                    .andar(apartamentoDto.andar())
+                    .numero(normalizarNumeroUnidade(apartamentoDto.numero()))
+                    .areaPrivativa(apartamentoDto.areaPrivativa())
+                    .areaTotal(apartamentoDto.areaTotal())
+                    .quartos(apartamentoDto.quartos())
+                    .suites(apartamentoDto.suites())
+                    .banheiros(apartamentoDto.banheiros())
+                    .vagas(apartamentoDto.vagas())
+                    .varanda(apartamentoDto.varanda())
+                    .posicaoSolar(apartamentoDto.posicaoSolar().trim())
+                    .build());
         }
 
-        EnderecoImovel endereco = EnderecoImovel.builder()
-                .imovel(imovel)
-                .cep(dto.endereco().cep())
-                .logradouro(dto.endereco().logradouro().trim())
-                .numero(dto.endereco().numero().trim())
-                .complemento(dto.endereco().complemento())
-                .bairro(dto.endereco().bairro().trim())
-                .cidade(cidade)
-                .latitude(dto.endereco().latitude())
-                .longitude(dto.endereco().longitude())
-                .build();
-        imovel.setEndereco(endereco);
+        if (dto.endereco() != null) {
+            EnderecoImovel endereco = EnderecoImovel.builder()
+                    .imovel(imovel)
+                    .cep(dto.endereco().cep())
+                    .logradouro(dto.endereco().logradouro().trim())
+                    .numero(dto.endereco().numero().trim())
+                    .complemento(dto.endereco().complemento())
+                    .bairro(dto.endereco().bairro().trim())
+                    .cidade(cidade)
+                    .latitude(dto.endereco().latitude())
+                    .longitude(dto.endereco().longitude())
+                    .build();
+            imovel.setEndereco(endereco);
+        }
         return imovel;
     }
 
     private ImovelResponseDto toResponse(Imovel imovel) {
         EnderecoImovel endereco = imovel.getEndereco();
-        EnderecoImovelResponseDto enderecoResponse = new EnderecoImovelResponseDto(
-                endereco.getId(), endereco.getCep(), endereco.getLogradouro(), endereco.getNumero(),
-                endereco.getComplemento(), endereco.getBairro(), endereco.getCidade().getId(),
-                endereco.getCidade().getNome(), endereco.getCidade().getUf().name(),
-                endereco.getLatitude(), endereco.getLongitude());
+        EnderecoImovelResponseDto enderecoResponse;
+        if (endereco == null) {
+            enderecoResponse = PredioMapper.toImovelEndereco(imovel.getApartamento().getPredio());
+        } else {
+            enderecoResponse = new EnderecoImovelResponseDto(
+                    endereco.getId(), endereco.getCep(), endereco.getLogradouro(), endereco.getNumero(),
+                    endereco.getComplemento(), endereco.getBairro(), endereco.getCidade().getId(),
+                    endereco.getCidade().getNome(), endereco.getCidade().getUf().name(),
+                    endereco.getLatitude(), endereco.getLongitude());
+        }
 
         Set<CaracteristicaResponseDto> caracteristicas = imovel.getCaracteristicas().stream()
                 .map(caracteristica -> new CaracteristicaResponseDto(caracteristica.getId(), caracteristica.getNome()))
@@ -288,12 +342,22 @@ public class ImovelService {
                 imovel.getTerreno().getLateralEsquerda(), imovel.getTerreno().getLateralDireita(),
                 imovel.getTerreno().getTopografia(), imovel.getTerreno().getMuro(), imovel.getTerreno().getEsquina(),
                 imovel.getTerreno().getUsoPermitido());
+        ApartamentoResponseDto apartamentoResponse = null;
+        if (imovel.getApartamento() != null) {
+            apartamentoResponse = new ApartamentoResponseDto(
+                    imovel.getApartamento().getAndar(), imovel.getApartamento().getNumero(),
+                    imovel.getApartamento().getAreaPrivativa(), imovel.getApartamento().getAreaTotal(),
+                    imovel.getApartamento().getQuartos(), imovel.getApartamento().getSuites(),
+                    imovel.getApartamento().getBanheiros(), imovel.getApartamento().getVagas(),
+                    imovel.getApartamento().getVaranda(), imovel.getApartamento().getPosicaoSolar(),
+                    PredioMapper.toResponse(imovel.getApartamento().getPredio()));
+        }
 
         return new ImovelResponseDto(
                 imovel.getId(), imovel.getCodigo(), imovel.getTitulo(), imovel.getEmpresa().getId(),
                 imovel.getCorretor().getId(), imovel.getCorretor().getUsuario().getNome(),
                 imovel.getProprietario().getId(), imovel.getProprietario().getNome(), imovel.getFinalidade(),
-                imovel.getNatureza(), casaResponse, terrenoResponse,
+                imovel.getNatureza(), casaResponse, terrenoResponse, apartamentoResponse,
                 imovel.getValorVenda(), imovel.getValorAluguel(), imovel.getValorCondominio(),
                 imovel.getValorIptu(), imovel.getDescricao(), enderecoResponse, caracteristicas, fotos);
     }
@@ -304,5 +368,9 @@ public class ImovelService {
         } catch (RuntimeException ignored) {
             // Preserva a falha original do cadastro.
         }
+    }
+
+    private String normalizarNumeroUnidade(String numero) {
+        return numero.trim().toUpperCase(java.util.Locale.ROOT);
     }
 }
