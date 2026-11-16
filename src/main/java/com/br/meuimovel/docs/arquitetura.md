@@ -1,6 +1,6 @@
 # Arquitetura de dados
 
-Este documento descreve o modelo relacional criado pelas migrations Flyway V1–V14 do `aluguel-imoveis-api`, considerando também as histórias do projeto. As relações e garantias abaixo refletem o SQL dessas migrations. Regras descritas nas histórias que ainda não aparecem no SQL estão identificadas como validações da aplicação ou como itens fora do escopo atual.
+Este documento descreve o modelo relacional criado pelas migrations Flyway V1–V16 do `aluguel-imoveis-api`, considerando também as histórias do projeto. As relações e garantias abaixo refletem o SQL dessas migrations. Regras descritas nas histórias que ainda não aparecem no SQL estão identificadas como validações da aplicação ou como itens fora do escopo atual.
 
 ## Visão do modelo
 
@@ -88,6 +88,23 @@ erDiagram
         string topografia
         string uso_permitido
     }
+    PREDIO {
+        int id PK
+        int empresa_id FK
+        int cidade_id FK
+        string nome
+        int numero_andares
+        int unidades_por_andar
+        decimal valor_condominio_base
+    }
+    APARTAMENTO {
+        int imovel_id PK, FK
+        int predio_id FK
+        int andar
+        string numero
+        decimal area_privativa
+        decimal area_total
+    }
 
     CIDADE o|--o{ EMPRESA : "cidade do endereco da empresa"
     EMPRESA ||--o{ EMPRESA_CIDADE : "cidades de atuacao"
@@ -106,6 +123,10 @@ erDiagram
     CARACTERISTICA ||--o{ IMOVEL_CARACTERISTICA : "imoveis com a caracteristica"
     IMOVEL ||--o| CASA : "detalhes quando natureza CASA"
     IMOVEL ||--o| TERRENO : "detalhes quando natureza TERRENO"
+    IMOVEL ||--o| APARTAMENTO : "detalhes quando natureza APARTAMENTO"
+    PREDIO ||--o{ APARTAMENTO : "predio compartilhado das unidades"
+    EMPRESA ||--o{ PREDIO : "predios do tenant"
+    CIDADE ||--o{ PREDIO : "cidade do endereco do predio"
 ```
 
 No diagrama, `o|` indica zero ou um, `||` indica exatamente um e `o{` indica zero ou muitos. Assim, a relação entre imóvel e endereço é opcional no banco: um imóvel pode não ter linha em `endereco_imovel`, embora cada linha de endereço tenha cidade e coordenadas obrigatórias.
@@ -122,12 +143,14 @@ No diagrama, `o|` indica zero ou um, `||` indica exatamente um e `o{` indica zer
 | V6 | `gestor` | Marcador de perfil de gestor, também com `usuario_id` como PK e FK para `usuario`. |
 | V7 | `proprietario` | Contato do proprietário cadastrado por uma empresa. Documento é único dentro da mesma empresa. |
 | V8 | `caracteristica` | Catálogo global de características, com nome único. |
-| V9 | `imovel` | Cadastro comum do imóvel. Exige empresa, corretor, proprietário, finalidade e natureza; código é único por empresa. |
+| V9 | `imovel` | Cadastro comum do imóvel. Exige empresa, corretor, proprietário, finalidade e natureza (`CASA`, `TERRENO` ou `APARTAMENTO`); código é único por empresa. |
 | V10 | `endereco_imovel` | Endereço ligado a um imóvel e a uma cidade. `UNIQUE (imovel_id)` limita o imóvel a um endereço. CEP, logradouro, número, bairro, cidade, latitude e longitude são obrigatórios quando a linha existe. |
 | V11 | `imovel_caracteristica` | Associação muitos-para-muitos entre imóvel e característica, com chave primária composta que impede repetir a associação. |
 | V12 | `foto_imovel` | Fotos ordenadas de um imóvel. `UNIQUE (imovel_id, ordem)` impede duas fotos na mesma posição para o mesmo imóvel. |
 | V13 | `casa` | Dados específicos da casa, com chave primária e estrangeira para `imovel`. |
 | V14 | `terreno` | Dados específicos do terreno, com chave primária e estrangeira para `imovel`. |
+| V15 | `predio` | Prédio vinculado a uma empresa, com endereço e dados compartilhados pelas unidades. |
+| V16 | `apartamento` | Dados da unidade, relacionados ao imóvel e a um prédio já cadastrado. |
 
 ### Cardinalidades e remoções
 
@@ -150,8 +173,12 @@ As migrations criam PKs e FKs para a existência das entidades referenciadas. Ta
 - `proprietario`: documento único por empresa; comprimento do documento condicionado ao tipo informado.
 - `caracteristica`: nome único globalmente.
 - `imovel`: finalidade limitada a `VENDA`, `ALUGUEL` ou `VENDA_E_ALUGUEL`; código único dentro da empresa.
-- `imovel.natureza`: obrigatória e limitada a `CASA` ou `TERRENO`.
+- `imovel.natureza`: obrigatória e limitada a `CASA`, `TERRENO` ou `APARTAMENTO`.
 - `casa` e `terreno` usam `imovel_id` como PK e FK e são removidas em cascata com o imóvel.
+- `apartamento` usa `imovel_id` como PK e FK, mantém referência obrigatória ao prédio, e é removido em cascata com o imóvel; a exclusão do prédio é restrita enquanto houver apartamentos.
+- `predio` pertence a uma empresa e à cidade do seu endereço; o serviço limita as consultas à empresa autenticada.
+- `apartamento`: áreas positivas, área total pelo menos igual à área privativa, contagens não negativas e combinação `(predio_id, andar, numero)` única.
+- `predio`: número de andares e unidades por andar positivos, ano e elevadores não negativos, condomínio base não negativo e coordenadas dentro dos limites geográficos.
 - `casa`: áreas positivas, área construída menor ou igual à área do terreno e contagens/ano não negativos. A área livre não é persistida.
 - `terreno`: área e medidas positivas, topografia limitada a `PLANO`, `ACLIVE` ou `DECLIVE`, além de uso permitido não vazio.
 - `endereco_imovel`: no máximo um endereço por imóvel e, se cadastrado, cidade e coordenadas não nulas.
@@ -162,11 +189,11 @@ Os checks de documento verificam o tipo e o comprimento, mas não os dígitos, a
 
 ## Multitenancy: garantias e lacunas
 
-`empresa` é a fronteira de tenant usada no cadastro. `usuario`, `proprietario` e `imovel` têm `empresa_id`. O banco exige que essas referências apontem para uma empresa existente; em `usuario`, o check adicional torna a empresa obrigatória para gestor, corretor e cliente. `UNIQUE (empresa_id, codigo)` permite que empresas diferentes reutilizem o mesmo código de imóvel sem colisão. `UNIQUE (empresa_id, documento)` permite que o mesmo documento de proprietário exista em empresas diferentes, mas não duas vezes na mesma empresa.
+`empresa` é a fronteira de tenant usada no cadastro. `usuario`, `proprietario`, `imovel` e `predio` têm `empresa_id`. O banco exige que essas referências apontem para uma empresa existente; em `usuario`, o check adicional torna a empresa obrigatória para gestor, corretor e cliente. `UNIQUE (empresa_id, codigo)` permite que empresas diferentes reutilizem o mesmo código de imóvel sem colisão. `UNIQUE (empresa_id, documento)` permite que o mesmo documento de proprietário exista em empresas diferentes, mas não duas vezes na mesma empresa.
 
 As FKs de `imovel` verificam separadamente que a empresa, o corretor e o proprietário existem. Elas **não** verificam que o corretor e o proprietário pertencem à mesma empresa indicada em `imovel.empresa_id`. Também não há uma FK que assegure que o corretor ligado ao imóvel tenha um usuário com `empresa_id` correspondente, que o usuário autenticado possa operar naquele tenant ou que a cidade do endereço esteja em `empresa_cidade`.
 
-Por isso, o serviço deve derivar o tenant da identidade autenticada e aplicar o filtro `empresa_id` em toda leitura ou alteração do acervo. Deve ainda validar, antes de gravar ou associar referências, que corretor, proprietário e imóvel pertencem à mesma empresa e que a cidade escolhida está na área de atuação dela. O `empresa_id` recebido do cliente não deve ser aceito como prova de acesso. A autorização também precisa conferir o perfil e a empresa do usuário; as FKs de `gestor` e `corretor` garantem apenas a existência do usuário.
+Por isso, o serviço deve derivar o tenant da identidade autenticada e aplicar o filtro `empresa_id` em toda leitura ou alteração do acervo. Deve ainda validar, antes de gravar ou associar referências, que corretor, proprietário, imóvel e prédio pertencem à mesma empresa e que a cidade escolhida está na área de atuação dela. `apartamento.predio_id` tem FK para um prédio existente, mas a igualdade entre `imovel.empresa_id` e `predio.empresa_id` é validada pelo serviço ao vincular a unidade. O `empresa_id` recebido do cliente não deve ser aceito como prova de acesso. A autorização também precisa conferir o perfil e a empresa do usuário; as FKs de `gestor` e `corretor` garantem apenas a existência do usuário.
 
 Alguns campos têm unicidade global apesar da separação por empresa: `usuario.email`, `empresa.documento` e `corretor.creci`. Assim, o banco não permite reutilizar esses valores em tenants distintos. Essa é a regra definida pelo SQL atual.
 
@@ -181,12 +208,16 @@ As histórias do projeto descrevem regras que não estão implementadas por cons
 - Aplicar a política de fotos de capa da história W04. O banco não garante que exista uma capa, nem que haja no máximo uma. Também cabe ao serviço validar uma ordem útil e não apenas distinta.
 - Conferir a correspondência entre `imovel.natureza` e exatamente uma tabela de detalhes. A API valida essa regra no cadastro; as tabelas de detalhes não usam gatilhos para impor coerência entre linhas.
 - Calcular a área livre da casa como `area_terreno - area_construida` ao montar o DTO de resposta; esse valor não é recebido nem gravado.
+- Criar e atualizar prédios apenas dentro do tenant autenticado e validar se a cidade do endereço está na área de atuação da empresa.
+- Vincular o apartamento a um prédio da mesma empresa; seu endereço é apresentado a partir do prédio compartilhado e não é duplicado em `endereco_imovel`.
+- Normalizar o número da unidade com trim e maiúsculas antes de validar e salvar; a unicidade no prédio também é protegida por constraint.
+- Retornar junto ao detalhe do apartamento os dados atuais do prédio. Como as unidades apontam ao mesmo registro, atualizações do prédio são refletidas nas respostas subsequentes.
 - Validar dígitos e checksums de CPF/CNPJ, formatos de e-mail e telefone, CEP, e limites geográficos de latitude e longitude. As colunas e constraints atuais não verificam essas regras.
 - Conferir as permissões do perfil logado para cada operação e a coerência entre `usuario.perfil` e as tabelas `gestor`/`corretor`.
 
 ## Limites desta versão do esquema
 
-As histórias e a descrição do projeto também mencionam apartamento e rural, loteamentos com quadras e lotes, publicação na vitrine, contratos, parcelas e documentos. As naturezas casa e terreno livre são implementadas pelas migrations V13 e V14; a coluna de natureza faz parte da V9. Apartamento, rural e os módulos de loteamento e contratos permanecem fora deste escopo.
+As histórias e a descrição do projeto também mencionam rural, loteamentos com quadras e lotes, publicação na vitrine, contratos, parcelas e documentos. As naturezas casa e terreno livre são implementadas pelas migrations V13 e V14; prédio e apartamento, respectivamente, pelas V15 e V16. Rural e os módulos de loteamento e contratos permanecem fora deste escopo.
 
 ## Armazenamento de imagens (WEB EXTRA)
 
