@@ -2,6 +2,7 @@ package com.br.meuimovel.service;
 
 import com.br.meuimovel.dtos.imovel.EnderecoImovelDto;
 import com.br.meuimovel.dtos.imovel.CasaCreateDto;
+import com.br.meuimovel.dtos.imovel.ApartamentoCreateDto;
 import com.br.meuimovel.dtos.imovel.ImovelCreateDto;
 import com.br.meuimovel.dtos.imovel.ImovelResponseDto;
 import com.br.meuimovel.dtos.imovel.TerrenoCreateDto;
@@ -13,6 +14,8 @@ import com.br.meuimovel.enums.TipoDocumento;
 import com.br.meuimovel.enums.Uf;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
+import com.br.meuimovel.exception.ApartamentoAlreadyExistsException;
+import com.br.meuimovel.exception.PredioNotFoundException;
 import com.br.meuimovel.exception.ImovelInvalidoException;
 import com.br.meuimovel.exception.ImovelNotFoundException;
 import com.br.meuimovel.exception.CaracteristicaNotFoundException;
@@ -47,6 +50,8 @@ class ImovelServiceTest {
     private static final String SEGUNDA_IMAGEM_ID = "4bbf744d-a873-4ef0-b1f2-b1532bfb31db";
 
     @Mock private ImovelRepository imovelRepository;
+    @Mock private PredioRepository predioRepository;
+    @Mock private ApartamentoRepository apartamentoRepository;
     @Mock private ProprietarioRepository proprietarioRepository;
     @Mock private CorretorRepository corretorRepository;
     @Mock private CidadeRepository cidadeRepository;
@@ -94,7 +99,7 @@ class ImovelServiceTest {
         ImovelCreateDto invalidDto = new ImovelCreateDto(base.codigo(), base.titulo(), base.proprietarioId(),
                 base.finalidade(), base.valorVenda(), base.valorAluguel(), base.valorCondominio(), base.valorIptu(),
                 base.descricao(), NaturezaImovel.CASA, casa, null, base.endereco(), base.caracteristicasIds(),
-                base.fotoCapaOrdem());
+                base.fotoCapaOrdem(), null);
 
         ImovelInvalidoException exception = assertThrows(
                 ImovelInvalidoException.class,
@@ -112,7 +117,7 @@ class ImovelServiceTest {
                 base.proprietarioId(), base.finalidade(), base.valorVenda(), base.valorAluguel(), base.valorCondominio(),
                 base.valorIptu(), base.descricao(), NaturezaImovel.CASA,
                 casaDto(BigDecimal.valueOf(100), BigDecimal.valueOf(80)), terrenoDto(),
-                base.endereco(), base.caracteristicasIds(), base.fotoCapaOrdem());
+                base.endereco(), base.caracteristicasIds(), base.fotoCapaOrdem(), null);
 
         ImovelInvalidoException exception = assertThrows(
                 ImovelInvalidoException.class,
@@ -228,7 +233,7 @@ class ImovelServiceTest {
         ImovelCreateDto terrenoDto = new ImovelCreateDto(base.codigo(), base.titulo(), base.proprietarioId(),
                 base.finalidade(), base.valorVenda(), base.valorAluguel(), base.valorCondominio(), base.valorIptu(),
                 base.descricao(), NaturezaImovel.TERRENO, null, terrenoDto(), base.endereco(),
-                base.caracteristicasIds(), base.fotoCapaOrdem());
+                base.caracteristicasIds(), base.fotoCapaOrdem(), null);
 
         ImovelResponseDto response = imovelService.create(terrenoDto, List.of(foto("frente.jpg")));
 
@@ -236,6 +241,113 @@ class ImovelServiceTest {
         assertNotNull(response.terreno());
         assertEquals("Uso residencial", response.terreno().usoPermitido());
         assertNull(response.casa());
+    }
+
+    @Test
+    void createApartmentUsesBuildingAddressAndReturnsSharedBuildingDetails() {
+        Usuario usuario = autenticarCorretor();
+        Empresa empresa = usuario.getEmpresa();
+        Proprietario proprietario = Proprietario.builder()
+                .id(15).empresa(empresa).tipoDocumento(TipoDocumento.CPF).documento("52998224725")
+                .nome("Ana Souza").telefone("81999999999").email("ana@example.com").build();
+        Corretor corretor = new Corretor(usuario, "/foto-corretor.jpg", "CRECI-1", "81999999999",
+                "81999999999", "Apresentação");
+        corretor.setId(usuario.getId());
+        Cidade cidade = new Cidade("Recife", Uf.PE);
+        cidade.setId(20);
+        Predio predio = predio(empresa, cidade);
+
+        when(imovelRepository.existsByEmpresa_IdAndCodigo(empresa.getId(), "AP-1")).thenReturn(false);
+        when(corretorRepository.findById(usuario.getId())).thenReturn(Optional.of(corretor));
+        when(proprietarioRepository.findByIdAndEmpresa_Id(15, empresa.getId())).thenReturn(Optional.of(proprietario));
+        when(predioRepository.findByIdAndEmpresa_Id(55, empresa.getId())).thenReturn(Optional.of(predio));
+        when(apartamentoRepository.existsByPredio_IdAndAndarAndNumeroIgnoreCase(55, 4, "401A"))
+                .thenReturn(false);
+        when(empresaRepository.atuaNaCidade(empresa.getId(), 20)).thenReturn(true);
+        when(imovelRepository.save(any(Imovel.class))).thenAnswer(invocation -> {
+            Imovel imovel = invocation.getArgument(0);
+            imovel.setId(42);
+            imovel.getApartamento().setId(42);
+            return imovel;
+        });
+        when(fileStorageService.salvarFotoImovel(any(), eq(42), eq(1)))
+                .thenReturn("/imagens/imovel/42/" + PRIMEIRA_IMAGEM_ID);
+        when(fotoImovelRepository.save(any(FotoImovel.class))).thenAnswer(invocation -> {
+            FotoImovel foto = invocation.getArgument(0);
+            foto.setId(1);
+            return foto;
+        });
+        when(fotoImovelRepository.findAllByImovel_IdOrderByOrdemAsc(42))
+                .thenAnswer(invocation -> List.of(fotoEntity(42)));
+
+        ImovelCreateDto base = dto(FinalidadeImovel.VENDA, BigDecimal.valueOf(300_000), null, 1);
+        ImovelCreateDto createDto = new ImovelCreateDto(
+                "AP-1", base.titulo(), base.proprietarioId(), base.finalidade(), base.valorVenda(),
+                base.valorAluguel(), base.valorCondominio(), base.valorIptu(), base.descricao(),
+                NaturezaImovel.APARTAMENTO, null, null, null, Set.of(), 1,
+                new ApartamentoCreateDto(55, 4, " 401a ", BigDecimal.valueOf(80), BigDecimal.valueOf(95),
+                        3, 1, 2, 1, true, "Leste"));
+
+        ImovelResponseDto response = imovelService.create(createDto, List.of(foto("sala.jpg")));
+
+        assertEquals(NaturezaImovel.APARTAMENTO, response.natureza());
+        assertNull(response.casa());
+        assertNull(response.terreno());
+        assertEquals("401A", response.apartamento().numero());
+        assertEquals("Edifício Atlântico", response.apartamento().predio().nome());
+        assertEquals("Rua do Sol", response.endereco().logradouro());
+        assertNull(response.endereco().id());
+        verify(apartamentoRepository).existsByPredio_IdAndAndarAndNumeroIgnoreCase(55, 4, "401A");
+    }
+
+    @Test
+    void createRejectsDuplicateApartmentWithinBuilding() {
+        Usuario usuario = autenticarCorretor();
+        Empresa empresa = usuario.getEmpresa();
+        Proprietario proprietario = Proprietario.builder()
+                .id(15).empresa(empresa).tipoDocumento(TipoDocumento.CPF).documento("52998224725")
+                .nome("Ana Souza").telefone("81999999999").email("ana@example.com").build();
+        Corretor corretor = new Corretor(usuario, "/foto-corretor.jpg", "CRECI-1", "81999999999",
+                "81999999999", "Apresentação");
+        corretor.setId(usuario.getId());
+        Cidade cidade = new Cidade("Recife", Uf.PE);
+        cidade.setId(20);
+        Predio predio = predio(empresa, cidade);
+        ImovelCreateDto createDto = apartamentoDto();
+
+        when(imovelRepository.existsByEmpresa_IdAndCodigo(empresa.getId(), "AP-1")).thenReturn(false);
+        when(corretorRepository.findById(usuario.getId())).thenReturn(Optional.of(corretor));
+        when(proprietarioRepository.findByIdAndEmpresa_Id(15, empresa.getId())).thenReturn(Optional.of(proprietario));
+        when(predioRepository.findByIdAndEmpresa_Id(55, empresa.getId())).thenReturn(Optional.of(predio));
+        when(apartamentoRepository.existsByPredio_IdAndAndarAndNumeroIgnoreCase(55, 4, "401A"))
+                .thenReturn(true);
+
+        assertThrows(ApartamentoAlreadyExistsException.class,
+                () -> imovelService.create(createDto, List.of(foto("sala.jpg"))));
+
+        verify(imovelRepository, never()).save(any(Imovel.class));
+        verifyNoInteractions(fileStorageService);
+    }
+
+    @Test
+    void createRejectsBuildingOutsideAuthenticatedCompany() {
+        Usuario usuario = autenticarCorretor();
+        Empresa empresa = usuario.getEmpresa();
+        Proprietario proprietario = Proprietario.builder()
+                .id(15).empresa(empresa).tipoDocumento(TipoDocumento.CPF).documento("52998224725")
+                .nome("Ana Souza").telefone("81999999999").email("ana@example.com").build();
+        Corretor corretor = new Corretor(usuario, "/foto-corretor.jpg", "CRECI-1", "81999999999",
+                "81999999999", "Apresentação");
+        corretor.setId(usuario.getId());
+        when(imovelRepository.existsByEmpresa_IdAndCodigo(empresa.getId(), "AP-1")).thenReturn(false);
+        when(corretorRepository.findById(usuario.getId())).thenReturn(Optional.of(corretor));
+        when(proprietarioRepository.findByIdAndEmpresa_Id(15, empresa.getId())).thenReturn(Optional.of(proprietario));
+        when(predioRepository.findByIdAndEmpresa_Id(55, empresa.getId())).thenReturn(Optional.empty());
+
+        assertThrows(PredioNotFoundException.class,
+                () -> imovelService.create(apartamentoDto(), List.of(foto("sala.jpg"))));
+
+        verify(imovelRepository, never()).save(any(Imovel.class));
     }
 
     @Test
@@ -308,7 +420,27 @@ class ImovelServiceTest {
         return new ImovelCreateDto("IM-1", "Imóvel de teste", 15, finalidade,
                 valorVenda, valorAluguel, null, null, "Descrição", NaturezaImovel.CASA,
                 casaDto(BigDecimal.valueOf(150), BigDecimal.valueOf(50)), null,
-                endereco, caracteristicasIds, fotoCapaOrdem);
+                endereco, caracteristicasIds, fotoCapaOrdem, null);
+    }
+
+    private Predio predio(Empresa empresa, Cidade cidade) {
+        return Predio.builder()
+                .id(55)
+                .empresa(empresa)
+                .nome("Edifício Atlântico")
+                .cep("50000000").logradouro("Rua do Sol").numero("10").bairro("Centro")
+                .cidade(cidade).latitude(BigDecimal.valueOf(-8.05)).longitude(BigDecimal.valueOf(-34.9))
+                .numeroAndares(10).unidadesPorAndar(4).anoConstrucao(2010).elevadores(2)
+                .portaria24h(true).piscina(true).academia(false).salaoFestas(true).playground(false)
+                .valorCondominioBase(BigDecimal.valueOf(650)).build();
+    }
+
+    private ImovelCreateDto apartamentoDto() {
+        return new ImovelCreateDto("AP-1", "Apartamento de teste", 15, FinalidadeImovel.VENDA,
+                BigDecimal.valueOf(300_000), null, null, null, "Descrição", NaturezaImovel.APARTAMENTO,
+                null, null, null, Set.of(), 1,
+                new ApartamentoCreateDto(55, 4, " 401a ", BigDecimal.valueOf(80), BigDecimal.valueOf(95),
+                        3, 1, 2, 1, true, "Leste"));
     }
 
     private CasaCreateDto casaDto(BigDecimal areaTerreno, BigDecimal areaConstruida) {
