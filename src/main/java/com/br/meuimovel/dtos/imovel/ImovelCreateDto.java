@@ -60,5 +60,8 @@ public record ImovelCreateDto(
     Integer fotoCapaOrdem,
 
     @Valid
-    ApartamentoCreateDto apartamento
+    ApartamentoCreateDto apartamento,
+
+    @Valid
+    LoteCreateDto lote
 ) {}

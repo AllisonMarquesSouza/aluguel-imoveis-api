@@ -97,6 +97,27 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(LoteamentoNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleLoteamentoNotFoundException(LoteamentoNotFoundException exception) {
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.NOT_FOUND, LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(QuadraNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleQuadraNotFoundException(QuadraNotFoundException exception) {
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.NOT_FOUND, LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(LoteNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleLoteNotFoundException(LoteNotFoundException exception) {
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.NOT_FOUND, LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(ImagemNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleImagemNotFoundException(ImagemNotFoundException exception) {
         ErrorResponse errorResponse = new ErrorResponse(exception.getMessage(), HttpStatus.NOT_FOUND, LocalDateTime.now());
@@ -182,6 +203,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ApartamentoAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleApartamentoAlreadyExistsException(
             ApartamentoAlreadyExistsException exception) {
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.CONFLICT, LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(QuadraAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleQuadraAlreadyExistsException(QuadraAlreadyExistsException exception) {
+        ErrorResponse errorResponse = new ErrorResponse
+                (exception.getMessage(), HttpStatus.CONFLICT, LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(LoteAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleLoteAlreadyExistsException(LoteAlreadyExistsException exception) {
         ErrorResponse errorResponse = new ErrorResponse
                 (exception.getMessage(), HttpStatus.CONFLICT, LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);

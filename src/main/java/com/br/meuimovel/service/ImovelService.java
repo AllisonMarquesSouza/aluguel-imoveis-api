@@ -4,12 +4,14 @@ import com.br.meuimovel.dtos.caracteristica.CaracteristicaResponseDto;
 import com.br.meuimovel.dtos.imovel.*;
 import com.br.meuimovel.enums.FinalidadeImovel;
 import com.br.meuimovel.enums.NaturezaImovel;
+import com.br.meuimovel.enums.SituacaoLote;
 import com.br.meuimovel.enums.TipoImagem;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
 import com.br.meuimovel.exception.*;
 import com.br.meuimovel.model.*;
 import com.br.meuimovel.mapper.PredioMapper;
+import com.br.meuimovel.mapper.LoteMapper;
 import com.br.meuimovel.repository.*;
 import com.br.meuimovel.storage.FileStorageService;
 import com.br.meuimovel.storage.ImagemUrl;
@@ -31,6 +33,8 @@ public class ImovelService {
     private final ImovelRepository imovelRepository;
     private final PredioRepository predioRepository;
     private final ApartamentoRepository apartamentoRepository;
+    private final QuadraRepository quadraRepository;
+    private final LoteRepository loteRepository;
     private final ProprietarioRepository proprietarioRepository;
     private final CorretorRepository corretorRepository;
     private final CidadeRepository cidadeRepository;
@@ -66,11 +70,12 @@ public class ImovelService {
                 .orElseThrow(() -> new ProprietarioNotFoundException(
                         "Proprietário não encontrado nesta empresa."));
         Predio predio = null;
+        Quadra quadra = null;
         Cidade cidade;
         if (createDto.natureza() == NaturezaImovel.APARTAMENTO) {
             predio = predioRepository.findByIdAndEmpresa_Id(createDto.apartamento().predioId(), empresaId)
                     .orElseThrow(() -> new PredioNotFoundException("Prédio não encontrado nesta empresa."));
-            String numeroUnidade = normalizarNumeroUnidade(createDto.apartamento().numero());
+            String numeroUnidade = normalizarNumero(createDto.apartamento().numero());
             if (apartamentoRepository.existsByPredio_IdAndAndarAndNumeroIgnoreCase(
                     predio.getId(), createDto.apartamento().andar(), numeroUnidade)) {
                 throw new ApartamentoAlreadyExistsException(
@@ -79,6 +84,23 @@ public class ImovelService {
             cidade = predio.getCidade();
             if (!empresaRepository.atuaNaCidade(empresaId, cidade.getId())) {
                 throw new ImovelInvalidoException("A cidade do prédio não pertence à área de atuação da empresa.");
+            }
+        } else if (createDto.natureza() == NaturezaImovel.LOTE) {
+            quadra = quadraRepository.findByIdAndLoteamento_Empresa_Id(
+                            createDto.lote().quadraId(), empresaId)
+                    .orElseThrow(() -> new QuadraNotFoundException("Quadra não encontrada nesta empresa."));
+            String numeroLote = normalizarNumero(createDto.lote().numero());
+            if (loteRepository.existsByQuadra_IdAndNumeroIgnoreCase(quadra.getId(), numeroLote)) {
+                throw new LoteAlreadyExistsException("Já existe um lote com esse número na quadra.");
+            }
+
+            cidade = cidadeRepository.findById(createDto.endereco().cidadeId())
+                    .orElseThrow(() -> new CidadeNotFoundException("Cidade do imóvel não encontrada."));
+            if (!cidade.getId().equals(quadra.getLoteamento().getCidade().getId())) {
+                throw new ImovelInvalidoException("O endereço do lote deve ficar na cidade do loteamento.");
+            }
+            if (!empresaRepository.atuaNaCidade(empresaId, cidade.getId())) {
+                throw new ImovelInvalidoException("A cidade não pertence à área de atuação da empresa.");
             }
         } else {
             cidade = cidadeRepository.findById(createDto.endereco().cidadeId())
@@ -90,7 +112,8 @@ public class ImovelService {
         }
 
         Set<Caracteristica> caracteristicas = carregarCaracteristicas(createDto.caracteristicasIds());
-        Imovel imovel = criarImovel(createDto, empresa, corretor, proprietario, cidade, predio, caracteristicas, codigo);
+        Imovel imovel = criarImovel(
+                createDto, empresa, corretor, proprietario, cidade, predio, quadra, caracteristicas, codigo);
         imovel = imovelRepository.save(imovel);
 
         List<String> arquivosSalvos = new ArrayList<>();
@@ -148,6 +171,10 @@ public class ImovelService {
     }
 
     private void validarPrecos(ImovelCreateDto dto) {
+        if (dto.natureza() == NaturezaImovel.LOTE && dto.valorVenda() == null) {
+            throw new ImovelInvalidoException("Informe o preço de venda para o lote.");
+        }
+
         boolean exigeVenda = dto.finalidade() == FinalidadeImovel.VENDA
                 || dto.finalidade() == FinalidadeImovel.VENDA_E_ALUGUEL;
         boolean exigeAluguel = dto.finalidade() == FinalidadeImovel.ALUGUEL
@@ -167,7 +194,8 @@ public class ImovelService {
         }
 
         if (dto.natureza() == NaturezaImovel.CASA) {
-            if (dto.casa() == null || dto.terreno() != null || dto.apartamento() != null || dto.endereco() == null) {
+            if (dto.casa() == null || dto.terreno() != null || dto.apartamento() != null
+                    || dto.lote() != null || dto.endereco() == null) {
                 throw new ImovelInvalidoException(
                         "Para a natureza CASA, informe apenas os dados de casa e o endereço do imóvel.");
             }
@@ -180,13 +208,15 @@ public class ImovelService {
         }
 
         if (dto.natureza() == NaturezaImovel.TERRENO
-                && (dto.terreno() == null || dto.casa() != null || dto.apartamento() != null || dto.endereco() == null)) {
+                && (dto.terreno() == null || dto.casa() != null || dto.apartamento() != null
+                || dto.lote() != null || dto.endereco() == null)) {
             throw new ImovelInvalidoException(
                     "Para a natureza TERRENO, informe apenas os dados do terreno e o endereço do imóvel.");
         }
 
         if (dto.natureza() == NaturezaImovel.APARTAMENTO) {
-            if (dto.apartamento() == null || dto.casa() != null || dto.terreno() != null || dto.endereco() != null) {
+            if (dto.apartamento() == null || dto.casa() != null || dto.terreno() != null
+                    || dto.lote() != null || dto.endereco() != null) {
                 throw new ImovelInvalidoException(
                         "Para a natureza APARTAMENTO, informe os dados da unidade e um prédio, sem endereço separado.");
             }
@@ -194,6 +224,13 @@ public class ImovelService {
                     && dto.apartamento().areaTotal().compareTo(dto.apartamento().areaPrivativa()) < 0) {
                 throw new ImovelInvalidoException("A área total não pode ser menor que a área privativa.");
             }
+        }
+
+        if (dto.natureza() == NaturezaImovel.LOTE
+                && (dto.lote() == null || dto.casa() != null || dto.terreno() != null
+                || dto.apartamento() != null || dto.endereco() == null)) {
+            throw new ImovelInvalidoException(
+                    "Para a natureza LOTE, informe os dados do lote, o endereço e a quadra, sem outros detalhes de natureza.");
         }
     }
 
@@ -219,7 +256,7 @@ public class ImovelService {
     }
 
     private Imovel criarImovel(ImovelCreateDto dto, Empresa empresa, Corretor corretor,
-                               Proprietario proprietario, Cidade cidade, Predio predio,
+                               Proprietario proprietario, Cidade cidade, Predio predio, Quadra quadra,
                                Set<Caracteristica> caracteristicas, String codigo) {
         Imovel imovel = Imovel.builder()
                 .codigo(codigo)
@@ -275,7 +312,7 @@ public class ImovelService {
                     .imovel(imovel)
                     .predio(predio)
                     .andar(apartamentoDto.andar())
-                    .numero(normalizarNumeroUnidade(apartamentoDto.numero()))
+                    .numero(normalizarNumero(apartamentoDto.numero()))
                     .areaPrivativa(apartamentoDto.areaPrivativa())
                     .areaTotal(apartamentoDto.areaTotal())
                     .quartos(apartamentoDto.quartos())
@@ -284,6 +321,18 @@ public class ImovelService {
                     .vagas(apartamentoDto.vagas())
                     .varanda(apartamentoDto.varanda())
                     .posicaoSolar(apartamentoDto.posicaoSolar().trim())
+                    .build());
+        } else if (dto.natureza() == NaturezaImovel.LOTE) {
+            LoteCreateDto loteDto = dto.lote();
+            imovel.setLote(Lote.builder()
+                    .imovel(imovel)
+                    .quadra(quadra)
+                    .numero(normalizarNumero(loteDto.numero()))
+                    .area(loteDto.area())
+                    .frente(loteDto.frente())
+                    .fundo(loteDto.fundo())
+                    .condicoesParcelamento(loteDto.condicoesParcelamento().trim())
+                    .situacao(SituacaoLote.DISPONIVEL)
                     .build());
         }
 
@@ -352,12 +401,13 @@ public class ImovelService {
                     imovel.getApartamento().getVaranda(), imovel.getApartamento().getPosicaoSolar(),
                     PredioMapper.toResponse(imovel.getApartamento().getPredio()));
         }
+        LoteResponseDto loteResponse = imovel.getLote() == null ? null : LoteMapper.toResponse(imovel.getLote());
 
         return new ImovelResponseDto(
                 imovel.getId(), imovel.getCodigo(), imovel.getTitulo(), imovel.getEmpresa().getId(),
                 imovel.getCorretor().getId(), imovel.getCorretor().getUsuario().getNome(),
                 imovel.getProprietario().getId(), imovel.getProprietario().getNome(), imovel.getFinalidade(),
-                imovel.getNatureza(), casaResponse, terrenoResponse, apartamentoResponse,
+                imovel.getNatureza(), casaResponse, terrenoResponse, apartamentoResponse, loteResponse,
                 imovel.getValorVenda(), imovel.getValorAluguel(), imovel.getValorCondominio(),
                 imovel.getValorIptu(), imovel.getDescricao(), enderecoResponse, caracteristicas, fotos);
     }
@@ -370,7 +420,7 @@ public class ImovelService {
         }
     }
 
-    private String normalizarNumeroUnidade(String numero) {
+    private String normalizarNumero(String numero) {
         return numero.trim().toUpperCase(java.util.Locale.ROOT);
     }
 }
