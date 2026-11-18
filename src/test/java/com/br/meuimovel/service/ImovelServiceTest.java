@@ -10,7 +10,7 @@ import com.br.meuimovel.dtos.imovel.TerrenoCreateDto;
 import com.br.meuimovel.dtos.caracteristica.CaracteristicaResponseDto;
 import com.br.meuimovel.enums.FinalidadeImovel;
 import com.br.meuimovel.enums.NaturezaImovel;
-import com.br.meuimovel.enums.SituacaoLote;
+import com.br.meuimovel.enums.SituacaoImovel;
 import com.br.meuimovel.enums.TopografiaTerreno;
 import com.br.meuimovel.enums.TipoDocumento;
 import com.br.meuimovel.enums.Uf;
@@ -291,7 +291,7 @@ class ImovelServiceTest {
 
         assertEquals(NaturezaImovel.LOTE, response.natureza());
         assertEquals("12A", response.lote().numero());
-        assertEquals(SituacaoLote.DISPONIVEL, response.lote().situacao());
+        assertEquals(SituacaoImovel.DISPONIVEL, response.lote().situacao());
         assertEquals("Quadra A", response.lote().quadra().identificacao());
         assertEquals("Residencial das Palmeiras", response.lote().quadra().loteamento().nome());
         assertEquals("Recife", response.lote().quadra().loteamento().cidade());

@@ -4,7 +4,7 @@ import com.br.meuimovel.dtos.loteamento.LoteamentoCreateDto;
 import com.br.meuimovel.dtos.loteamento.LoteamentoResponseDto;
 import com.br.meuimovel.dtos.loteamento.QuadraCreateDto;
 import com.br.meuimovel.dtos.loteamento.QuadraResponseDto;
-import com.br.meuimovel.enums.SituacaoLote;
+import com.br.meuimovel.enums.SituacaoImovel;
 import com.br.meuimovel.enums.Uf;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
@@ -93,8 +93,8 @@ class LoteamentoServiceTest {
         when(loteamentoRepository.findByIdAndEmpresa_Id(40, usuario.getEmpresa().getId()))
                 .thenReturn(Optional.of(loteamento));
         when(quadraRepository.findAllByLoteamento_IdOrderByIdentificacaoAsc(40)).thenReturn(List.of(quadra));
-        when(loteRepository.countByQuadra_IdAndSituacao(90, SituacaoLote.DISPONIVEL)).thenReturn(8L);
-        when(loteRepository.countByQuadra_IdAndSituacao(90, SituacaoLote.VENDIDO)).thenReturn(3L);
+        when(loteRepository.countByQuadra_IdAndSituacao(90, SituacaoImovel.DISPONIVEL)).thenReturn(8L);
+        when(loteRepository.countByQuadra_IdAndSituacao(90, SituacaoImovel.VENDIDO)).thenReturn(3L);
 
         LoteamentoResponseDto response = loteamentoService.getById(40);
 
@@ -117,8 +117,8 @@ class LoteamentoServiceTest {
             quadra.setId(90);
             return quadra;
         });
-        when(loteRepository.countByQuadra_IdAndSituacao(90, SituacaoLote.DISPONIVEL)).thenReturn(0L);
-        when(loteRepository.countByQuadra_IdAndSituacao(90, SituacaoLote.VENDIDO)).thenReturn(0L);
+        when(loteRepository.countByQuadra_IdAndSituacao(90, SituacaoImovel.DISPONIVEL)).thenReturn(0L);
+        when(loteRepository.countByQuadra_IdAndSituacao(90, SituacaoImovel.VENDIDO)).thenReturn(0L);
 
         QuadraResponseDto response = loteamentoService.createQuadra(40, new QuadraCreateDto(" quadra a "));
 
