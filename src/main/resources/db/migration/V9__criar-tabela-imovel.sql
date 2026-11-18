@@ -49,5 +49,5 @@ CREATE TABLE imovel
         ),
 
     CONSTRAINT ck_imovel_natureza
-        CHECK (natureza IN ('CASA', 'TERRENO', 'APARTAMENTO'))
+        CHECK (natureza IN ('CASA', 'TERRENO', 'APARTAMENTO', 'LOTE'))
 );

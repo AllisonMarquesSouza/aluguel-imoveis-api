@@ -75,6 +75,9 @@ public class Imovel {
     @OneToOne(mappedBy = "imovel", cascade = CascadeType.ALL, orphanRemoval = true)
     private Apartamento apartamento;
 
+    @OneToOne(mappedBy = "imovel", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Lote lote;
+
     @OneToMany(
             mappedBy = "imovel",
             cascade = CascadeType.ALL,

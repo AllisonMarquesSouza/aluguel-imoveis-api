@@ -28,6 +28,7 @@ public record ImovelResponseDto(
     CasaResponseDto casa,
     TerrenoResponseDto terreno,
     ApartamentoResponseDto apartamento,
+    LoteResponseDto lote,
 
     BigDecimal valorVenda,
     BigDecimal valorAluguel,
