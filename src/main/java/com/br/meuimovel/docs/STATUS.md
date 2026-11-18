@@ -137,6 +137,29 @@
 - [x] `git diff --check`
 - [ ] `MeuImovelApplicationTests.contextLoads` e validação de V15/V16 — não inicializaram: conexão ao PostgreSQL bloqueada no ambiente (`SQLState 08001`, `SocketException: Operation not permitted`)
 
+## W07 — Loteamento, quadras e lotes
+
+- [x] Incluir `LOTE` no constraint de natureza da migration V9 de `imovel`
+- [x] Criar as tabelas `loteamento` (V18), `quadra` (V19) e `lote` (V20), uma por migration
+- [x] Cadastrar e consultar loteamentos da empresa autenticada, com cidade, incorporadora, infraestrutura e áreas de lazer
+- [x] Cadastrar quadras por loteamento e impedir identificação duplicada dentro dele
+- [x] Cadastrar lote como imóvel, com endereço na cidade do loteamento, preço de venda, medidas e condições de parcelamento
+- [x] Impedir repetição do número do lote dentro da quadra no serviço e no banco
+- [x] Retornar no detalhe do imóvel os dados atuais do lote, da quadra e do loteamento
+- [x] Expor por quadra os totais disponíveis e vendidos; permitir atualizar a situação do lote
+- [x] Documentar os recursos e payloads no `README.md` e atualizar este documento e a arquitetura
+- [ ] Adaptar a tela para loteamentos, quadras e lotes — este repositório contém a API, sem interface web
+- [x] Cobrir cadastro e isolamento de loteamentos, contagens, criação de lotes e duplicidade com testes de serviço
+
+### Verificação
+
+- [x] `./mvnw -q -Dtest=ImovelServiceTest,PredioServiceTest,LoteamentoServiceTest,LoteServiceTest test` — 28 testes passaram
+- [x] `./mvnw -q -Dtest='!MeuImovelApplicationTests' test` — 111 testes passaram
+- [x] `git diff --check`
+- [ ] `MeuImovelApplicationTests.contextLoads` e validação de V9 e V18–V20 — não inicializaram: a conexão local ao PostgreSQL foi bloqueada pelo ambiente (`SQLState 08001`, `SocketException: Operation not permitted`)
+
+O lote é integrado ao cadastro e ao detalhe comum de imóveis. A vitrine pública continua sem endpoint nesta API, conforme o limite já registrado na W04.
+
 ## Instrução de continuidade
 
 Antes de iniciar a próxima etapa, confira o estado real do código e atualize este documento caso encontre diferenças. Não marque itens como concluídos sem verificar sua implementação.

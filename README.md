@@ -547,7 +547,7 @@ Cadastra imóvel. Consome `multipart/form-data` com `dto` (JSON) e uma ou mais p
 
 `codigo` aceita até 50 caracteres e `titulo` até 180. `finalidade` aceita `VENDA`, `ALUGUEL` ou `VENDA_E_ALUGUEL`. O preço de venda é obrigatório para `VENDA` e `VENDA_E_ALUGUEL`; o de aluguel é obrigatório para `ALUGUEL` e `VENDA_E_ALUGUEL`. Preços não podem ser negativos e aceitam até duas casas decimais. CEP deve ter oito dígitos; latitude deve estar entre `-90` e `90`, e longitude entre `-180` e `180`. Cidade e proprietário precisam existir; proprietário e corretor devem pertencer à empresa autenticada e a empresa precisa atuar na cidade informada. Todas as características informadas devem existir. O código é único dentro da empresa.
 
-`natureza` aceita `CASA`, `TERRENO` ou `APARTAMENTO`. Envie somente o bloco correspondente à natureza escolhida: `casa`, `terreno` ou `apartamento`. Para casa e terreno, `endereco` continua obrigatório. Para apartamento, omita `endereco`: o endereço vem do prédio vinculado.
+`natureza` aceita `CASA`, `TERRENO`, `APARTAMENTO` ou `LOTE`. Envie somente o bloco correspondente à natureza escolhida: `casa`, `terreno`, `apartamento` ou `lote`. Para casa, terreno e lote, `endereco` é obrigatório. Para apartamento, omita `endereco`: o endereço vem do prédio vinculado.
 
 Para casa e terreno, os campos dos blocos são obrigatórios; áreas e medidas usam metros quadrados e metros, respectivamente. Contagens são inteiros não negativos. Para casa, `areaConstruida` não pode superar `areaTerreno`; `areaLivre` é calculada pela API como `areaTerreno - areaConstruida` e aparece somente na resposta. Para terreno, `topografia` aceita `PLANO`, `ACLIVE` ou `DECLIVE`; `lateralEsquerda` e `lateralDireita` representam as duas laterais, e `usoPermitido` é texto livre.
 
@@ -728,6 +728,79 @@ Código duplicado retorna `409`; preço, área de atuação, ordem de capa ou ou
 Listam imóveis da empresa do corretor autenticado ou consultam um imóvel por ID dentro dessa mesma empresa. Resposta `200 OK` com `ImovelResponseDto` (mesmo formato do cadastro). Imóvel inexistente ou de outra empresa retorna `404`.
 
 O código atual não expõe filtro de imóveis por cidade nem rotas para atualizar ou remover imóveis.
+
+## Loteamentos, quadras e lotes
+
+As rotas exigem um corretor ativo vinculado a uma empresa ativa. O loteamento pertence à empresa autenticada e à cidade informada, que deve fazer parte da área de atuação. Os campos `asfalto`, `agua`, `energia`, `esgoto` e `iluminacaoPublica` descrevem a infraestrutura; `areasLazer` é texto livre e pode ser omitido.
+
+### `POST /loteamento`
+
+Cadastra um loteamento. Exemplo de corpo:
+
+```json
+{
+  "nome": "Residencial das Palmeiras",
+  "incorporadora": "Construtora Horizonte",
+  "cidadeId": 1,
+  "asfalto": true,
+  "agua": true,
+  "energia": true,
+  "esgoto": true,
+  "iluminacaoPublica": true,
+  "areasLazer": "Praça, playground e quadra esportiva"
+}
+```
+
+`GET /loteamento` lista os loteamentos da empresa e `GET /loteamento/{id}` consulta um deles. A resposta inclui as quadras e a contagem de lotes disponíveis e vendidos em cada uma. IDs de outra empresa retornam `404`.
+
+### `POST /loteamento/{id}/quadras`
+
+Cadastra uma quadra dentro do loteamento. O corpo contém `identificacao`, por exemplo `{"identificacao":"A"}`. A identificação é normalizada com trim e maiúsculas e não pode se repetir no mesmo loteamento. A resposta inclui as quantidades atuais de lotes por situação.
+
+### Cadastro do lote por `POST /imovel`
+
+Envie `natureza: "LOTE"`, o bloco `lote` e o endereço normal do imóvel. A cidade do endereço precisa ser a mesma do loteamento da quadra. O preço usa o campo comum `valorVenda`; número, área, frente, fundo e condições de parcelamento ficam no bloco específico:
+
+```json
+{
+  "codigo": "LT-2026-001",
+  "titulo": "Lote residencial na Quadra A",
+  "proprietarioId": 31,
+  "finalidade": "VENDA",
+  "valorVenda": 150000.00,
+  "natureza": "LOTE",
+  "lote": {
+    "quadraId": 8,
+    "numero": "12A",
+    "area": 250.00,
+    "frente": 10.00,
+    "fundo": 25.00,
+    "condicoesParcelamento": "Entrada de 30% e saldo em 24 parcelas"
+  },
+  "endereco": {
+    "cep": "50000000",
+    "logradouro": "Rua do Residencial",
+    "numero": "12A",
+    "bairro": "Centro",
+    "cidadeId": 1,
+    "latitude": -8.05,
+    "longitude": -34.9
+  },
+  "fotoCapaOrdem": 1
+}
+```
+
+O lote é gravado como imóvel da empresa autenticada, exige preço de venda e fica inicialmente `DISPONIVEL`. O detalhe do imóvel retorna o lote, sua quadra e os dados atuais do loteamento. O número é normalizado com trim e maiúsculas; repetição na mesma quadra retorna `409`.
+
+### `PATCH /lote/{id}/situacao`
+
+Atualiza a situação para `DISPONIVEL` ou `VENDIDO`, permitindo que a consulta do loteamento reflita os totais por quadra. O ID é o mesmo ID do imóvel/lote e é limitado à empresa autenticada. Exemplo:
+
+```json
+{
+  "situacao": "VENDIDO"
+}
+```
 
 ## Regras comuns de arquivos
 
