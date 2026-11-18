@@ -10,6 +10,8 @@ CREATE TABLE imovel
 
     finalidade       VARCHAR(20)  NOT NULL,
     natureza         VARCHAR(20) NOT NULL,
+    situacao         VARCHAR(20) NOT NULL DEFAULT 'DISPONIVEL',
+    publicado        BOOLEAN     NOT NULL DEFAULT FALSE,
 
     valor_venda      NUMERIC(15, 2),
     valor_aluguel    NUMERIC(15, 2),
@@ -49,5 +51,8 @@ CREATE TABLE imovel
         ),
 
     CONSTRAINT ck_imovel_natureza
-        CHECK (natureza IN ('CASA', 'TERRENO', 'APARTAMENTO', 'LOTE'))
+        CHECK (natureza IN ('CASA', 'TERRENO', 'APARTAMENTO', 'LOTE')),
+
+    CONSTRAINT ck_imovel_situacao
+        CHECK (situacao IN ('DISPONIVEL', 'RESERVADO', 'VENDIDO', 'ALUGADO'))
 );

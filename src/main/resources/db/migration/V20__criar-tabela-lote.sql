@@ -34,5 +34,5 @@ CREATE TABLE lote
         CHECK (length(trim(condicoes_parcelamento)) > 0),
 
     CONSTRAINT ck_lote_situacao
-        CHECK (situacao IN ('DISPONIVEL', 'VENDIDO'))
+        CHECK (situacao IN ('DISPONIVEL', 'RESERVADO', 'VENDIDO', 'ALUGADO'))
 );
