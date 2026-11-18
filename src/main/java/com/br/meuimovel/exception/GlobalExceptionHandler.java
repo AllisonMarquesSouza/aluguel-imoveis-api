@@ -90,6 +90,14 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(DocumentoImovelNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleDocumentoImovelNotFoundException(
+            DocumentoImovelNotFoundException exception) {
+        ErrorResponse errorResponse = new ErrorResponse(exception.getMessage(), HttpStatus.NOT_FOUND,
+                LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
     @ExceptionHandler(PredioNotFoundException.class)
     public ResponseEntity<ErrorResponse> handlePredioNotFoundException(PredioNotFoundException exception) {
         ErrorResponse errorResponse = new ErrorResponse
@@ -200,6 +208,14 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(DocumentoImovelAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleDocumentoImovelAlreadyExistsException(
+            DocumentoImovelAlreadyExistsException exception) {
+        ErrorResponse errorResponse = new ErrorResponse(exception.getMessage(), HttpStatus.CONFLICT,
+                LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
+    }
+
     @ExceptionHandler(ApartamentoAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleApartamentoAlreadyExistsException(
             ApartamentoAlreadyExistsException exception) {
@@ -238,6 +254,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleImovelInvalidoException(ImovelInvalidoException exception) {
         ErrorResponse errorResponse = new ErrorResponse
                 (exception.getMessage(), HttpStatus.BAD_REQUEST, LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(DocumentoImovelInvalidoException.class)
+    public ResponseEntity<ErrorResponse> handleDocumentoImovelInvalidoException(
+            DocumentoImovelInvalidoException exception) {
+        ErrorResponse errorResponse = new ErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST,
+                LocalDateTime.now());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 

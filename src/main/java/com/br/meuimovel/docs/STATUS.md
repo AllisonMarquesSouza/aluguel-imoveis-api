@@ -1,6 +1,6 @@
 # Status do projeto
 
-> Atualizado em 16/11/2026. Consulte os requisitos e a arquitetura para o detalhamento das regras de negócio e do banco.
+> Atualizado em 18/11/2026. Consulte os requisitos e a arquitetura para o detalhamento das regras de negócio e do banco.
 
 ## W01 — Empresa e usuários
 
@@ -93,7 +93,7 @@
 ### Fora do escopo atual
 
 - Atualização e remoção de imóveis
-- Publicação formal do imóvel; o cadastro exige endereço, cidade e coordenadas, mas o modelo atual não possui estado ou endpoint de publicação
+- Publicação formal do imóvel (implementada posteriormente na W08)
 - Naturezas fora do escopo original W04: apartamento (implementado na W06) e rural
 - Loteamentos, quadras e lotes
 - Vitrine pública completa e filtros do aplicativo
@@ -158,7 +158,30 @@
 - [x] `git diff --check`
 - [ ] `MeuImovelApplicationTests.contextLoads` e validação de V9 e V18–V20 — não inicializaram: a conexão local ao PostgreSQL foi bloqueada pelo ambiente (`SQLState 08001`, `SocketException: Operation not permitted`)
 
-O lote é integrado ao cadastro e ao detalhe comum de imóveis. A vitrine pública continua sem endpoint nesta API, conforme o limite já registrado na W04.
+O lote é integrado ao cadastro e ao detalhe comum de imóveis. A consulta pública da vitrine foi implementada na W08.
+
+## W08 — Documentos, publicação, situação e histórico
+
+- [x] Adicionar situação inicial `DISPONIVEL` e publicação inicialmente desativada ao imóvel na migration V9
+- [x] Criar migrations separadas para documentos do imóvel (V21) e histórico de situação (V22)
+- [x] Anexar um arquivo por tipo (`MATRICULA`, `CARNE_IPTU`, `AUTORIZACAO_PROPRIETARIO`) com data e download privado
+- [x] Permitir ao gestor ativar e desativar a publicação, exigindo endereço completo para publicar
+- [x] Permitir ao gestor alterar a situação para disponível, reservado, vendido ou alugado
+- [x] Registrar cada mudança efetiva com autor, data, situação anterior, nova situação e observação
+- [x] Sincronizar situação de lote com a situação do imóvel e registrar histórico também pela rota de lotes
+- [x] Expor na vitrine somente imóveis publicados e disponíveis; ocultar também imóveis de corretores inativos conforme a W02
+- [x] Cobrir upload e validação de documentos, publicação, histórico e filtro da vitrine com testes unitários
+- [x] Documentar endpoints e atualizar arquitetura e status
+
+### Verificação
+
+- [x] `./mvnw -q -DskipTests compile`
+- [x] `./mvnw -q -Dtest=ImovelGestaoServiceTest,DocumentoImovelServiceTest,ImovelVitrineServiceTest,DocumentoImovelValidatorTest,LocalDocumentoStorageServiceTest,ImovelServiceTest,LoteServiceTest,LoteamentoServiceTest,PredioServiceTest test` — 45 testes passaram
+- [x] `./mvnw -q -Dtest='!MeuImovelApplicationTests' test` — 128 testes passaram
+- [x] `git diff --check`
+- [ ] `MeuImovelApplicationTests.contextLoads` e validação das migrations V9, V20–V22 — não inicializaram porque a conexão local ao PostgreSQL foi bloqueada pelo ambiente (`SQLState 08001`, `SocketException: Operation not permitted`)
+
+Os documentos usam armazenamento local configurável por `APP_STORAGE_LOCATION`, separado das imagens e acessível apenas pelas rotas autenticadas de gestão.
 
 ## Instrução de continuidade
 

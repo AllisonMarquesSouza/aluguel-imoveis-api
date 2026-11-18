@@ -1,7 +1,7 @@
 package com.br.meuimovel.service;
 
 import com.br.meuimovel.dtos.loteamento.LoteSituacaoUpdateDto;
-import com.br.meuimovel.enums.SituacaoLote;
+import com.br.meuimovel.enums.SituacaoImovel;
 import com.br.meuimovel.enums.Uf;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
@@ -14,6 +14,8 @@ import com.br.meuimovel.model.Loteamento;
 import com.br.meuimovel.model.Quadra;
 import com.br.meuimovel.model.Usuario;
 import com.br.meuimovel.repository.LoteRepository;
+import com.br.meuimovel.repository.ImovelRepository;
+import com.br.meuimovel.repository.HistoricoSituacaoImovelRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +36,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class LoteServiceTest {
     @Mock private LoteRepository loteRepository;
+    @Mock private ImovelRepository imovelRepository;
+    @Mock private HistoricoSituacaoImovelRepository historicoRepository;
     @InjectMocks private LoteService loteService;
 
     @AfterEach
@@ -43,35 +47,46 @@ class LoteServiceTest {
 
     @Test
     void updateSituacaoScopesLotToAuthenticatedCompany() {
-        Usuario usuario = autenticarCorretor();
+        Usuario usuario = autenticarGestor();
         Lote lote = lote(usuario.getEmpresa());
         when(loteRepository.findByIdAndImovel_Empresa_Id(42, usuario.getEmpresa().getId()))
                 .thenReturn(Optional.of(lote));
         when(loteRepository.save(any(Lote.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(imovelRepository.save(any(Imovel.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(historicoRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        var response = loteService.updateSituacao(42, new LoteSituacaoUpdateDto(SituacaoLote.VENDIDO));
+        var response = loteService.updateSituacao(42,
+                new LoteSituacaoUpdateDto(SituacaoImovel.VENDIDO, "Venda concluída"));
 
-        assertEquals(SituacaoLote.VENDIDO, response.situacao());
+        assertEquals(SituacaoImovel.VENDIDO, response.situacao());
+        assertEquals(SituacaoImovel.VENDIDO, lote.getImovel().getSituacao());
         assertEquals("Residencial das Palmeiras", response.quadra().loteamento().nome());
         verify(loteRepository).findByIdAndImovel_Empresa_Id(42, usuario.getEmpresa().getId());
+        verify(imovelRepository).save(lote.getImovel());
+        verify(historicoRepository).save(argThat(historico ->
+                historico.getSituacaoAnterior() == SituacaoImovel.DISPONIVEL
+                        && historico.getSituacaoNova() == SituacaoImovel.VENDIDO
+                        && historico.getUsuario().equals(usuario)
+                        && "Venda concluída".equals(historico.getObservacao())));
     }
 
     @Test
     void updateSituacaoDoesNotExposeLotFromAnotherCompany() {
-        Usuario usuario = autenticarCorretor();
+        Usuario usuario = autenticarGestor();
         when(loteRepository.findByIdAndImovel_Empresa_Id(42, usuario.getEmpresa().getId()))
                 .thenReturn(Optional.empty());
 
         assertThrows(LoteNotFoundException.class,
-                () -> loteService.updateSituacao(42, new LoteSituacaoUpdateDto(SituacaoLote.VENDIDO)));
+                () -> loteService.updateSituacao(42,
+                        new LoteSituacaoUpdateDto(SituacaoImovel.VENDIDO, "Venda concluída")));
 
         verify(loteRepository, never()).save(any(Lote.class));
     }
 
-    private Usuario autenticarCorretor() {
+    private Usuario autenticarGestor() {
         Empresa empresa = Empresa.builder().id(7).ativa(true).build();
-        Usuario usuario = new Usuario(empresa, "Corretor", "corretor@example.com", "senha",
-                UsuarioPerfil.CORRETOR, UsuarioStatus.ATIVO, LocalDateTime.now());
+        Usuario usuario = new Usuario(empresa, "Gestor", "gestor@example.com", "senha",
+                UsuarioPerfil.GESTOR, UsuarioStatus.ATIVO, LocalDateTime.now());
         usuario.setId(9);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities()));
@@ -89,6 +104,6 @@ class LoteServiceTest {
         Imovel imovel = Imovel.builder().id(42).empresa(empresa).build();
         return Lote.builder().id(42).imovel(imovel).quadra(quadra).numero("12")
                 .area(BigDecimal.valueOf(250)).frente(BigDecimal.TEN).fundo(BigDecimal.valueOf(25))
-                .condicoesParcelamento("À vista").situacao(SituacaoLote.DISPONIVEL).build();
+                .condicoesParcelamento("À vista").situacao(SituacaoImovel.DISPONIVEL).build();
     }
 }

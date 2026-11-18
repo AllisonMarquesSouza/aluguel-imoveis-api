@@ -4,7 +4,7 @@ import com.br.meuimovel.dtos.loteamento.LoteamentoCreateDto;
 import com.br.meuimovel.dtos.loteamento.LoteamentoResponseDto;
 import com.br.meuimovel.dtos.loteamento.QuadraCreateDto;
 import com.br.meuimovel.dtos.loteamento.QuadraResponseDto;
-import com.br.meuimovel.enums.SituacaoLote;
+import com.br.meuimovel.enums.SituacaoImovel;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
 import com.br.meuimovel.exception.CidadeNotFoundException;
@@ -121,8 +121,8 @@ public class LoteamentoService {
     private QuadraResponseDto toQuadraResponse(Quadra quadra) {
         return new QuadraResponseDto(
                 quadra.getId(), quadra.getIdentificacao(),
-                loteRepository.countByQuadra_IdAndSituacao(quadra.getId(), SituacaoLote.DISPONIVEL),
-                loteRepository.countByQuadra_IdAndSituacao(quadra.getId(), SituacaoLote.VENDIDO));
+                loteRepository.countByQuadra_IdAndSituacao(quadra.getId(), SituacaoImovel.DISPONIVEL),
+                loteRepository.countByQuadra_IdAndSituacao(quadra.getId(), SituacaoImovel.VENDIDO));
     }
 
     private void validarIdentificacaoDisponivel(Integer loteamentoId, String identificacao) {

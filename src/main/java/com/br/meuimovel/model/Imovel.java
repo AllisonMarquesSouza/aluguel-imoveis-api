@@ -2,6 +2,7 @@ package com.br.meuimovel.model;
 
 import com.br.meuimovel.enums.FinalidadeImovel;
 import com.br.meuimovel.enums.NaturezaImovel;
+import com.br.meuimovel.enums.SituacaoImovel;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -49,6 +50,15 @@ public class Imovel {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private NaturezaImovel natureza;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private SituacaoImovel situacao = SituacaoImovel.DISPONIVEL;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean publicado = false;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

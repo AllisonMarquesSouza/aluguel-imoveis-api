@@ -4,6 +4,7 @@ package com.br.meuimovel.dtos.imovel;
 import com.br.meuimovel.dtos.caracteristica.CaracteristicaResponseDto;
 import com.br.meuimovel.enums.FinalidadeImovel;
 import com.br.meuimovel.enums.NaturezaImovel;
+import com.br.meuimovel.enums.SituacaoImovel;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -39,6 +40,9 @@ public record ImovelResponseDto(
 
     EnderecoImovelResponseDto endereco,
     Set<CaracteristicaResponseDto> caracteristicas,
-    List<FotoImovelResponseDto> fotos
+    List<FotoImovelResponseDto> fotos,
+
+    SituacaoImovel situacao,
+    boolean publicado
 
 ) {}

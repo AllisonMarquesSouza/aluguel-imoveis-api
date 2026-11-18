@@ -1,7 +1,7 @@
 package com.br.meuimovel.dtos.imovel;
 
 import com.br.meuimovel.dtos.loteamento.QuadraLoteResponseDto;
-import com.br.meuimovel.enums.SituacaoLote;
+import com.br.meuimovel.enums.SituacaoImovel;
 
 import java.math.BigDecimal;
 
@@ -11,6 +11,6 @@ public record LoteResponseDto(
         BigDecimal frente,
         BigDecimal fundo,
         String condicoesParcelamento,
-        SituacaoLote situacao,
+        SituacaoImovel situacao,
         QuadraLoteResponseDto quadra
 ) {}

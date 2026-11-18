@@ -4,7 +4,7 @@ import com.br.meuimovel.dtos.caracteristica.CaracteristicaResponseDto;
 import com.br.meuimovel.dtos.imovel.*;
 import com.br.meuimovel.enums.FinalidadeImovel;
 import com.br.meuimovel.enums.NaturezaImovel;
-import com.br.meuimovel.enums.SituacaoLote;
+import com.br.meuimovel.enums.SituacaoImovel;
 import com.br.meuimovel.enums.TipoImagem;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
@@ -332,7 +332,7 @@ public class ImovelService {
                     .frente(loteDto.frente())
                     .fundo(loteDto.fundo())
                     .condicoesParcelamento(loteDto.condicoesParcelamento().trim())
-                    .situacao(SituacaoLote.DISPONIVEL)
+                    .situacao(SituacaoImovel.DISPONIVEL)
                     .build());
         }
 
@@ -409,7 +409,8 @@ public class ImovelService {
                 imovel.getProprietario().getId(), imovel.getProprietario().getNome(), imovel.getFinalidade(),
                 imovel.getNatureza(), casaResponse, terrenoResponse, apartamentoResponse, loteResponse,
                 imovel.getValorVenda(), imovel.getValorAluguel(), imovel.getValorCondominio(),
-                imovel.getValorIptu(), imovel.getDescricao(), enderecoResponse, caracteristicas, fotos);
+                imovel.getValorIptu(), imovel.getDescricao(), enderecoResponse, caracteristicas, fotos,
+                imovel.getSituacao(), imovel.isPublicado());
     }
 
     private void tentarExcluirArquivo(String caminho) {

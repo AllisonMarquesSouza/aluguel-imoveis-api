@@ -1,6 +1,6 @@
 package com.br.meuimovel.model;
 
-import com.br.meuimovel.enums.SituacaoLote;
+import com.br.meuimovel.enums.SituacaoImovel;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -49,5 +49,5 @@ public class Lote {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Builder.Default
-    private SituacaoLote situacao = SituacaoLote.DISPONIVEL;
+    private SituacaoImovel situacao = SituacaoImovel.DISPONIVEL;
 }

@@ -61,14 +61,14 @@ As rotas protegidas usam JWT. Envie o token retornado por `POST /auth/login` no 
 Authorization: Bearer <token>
 ```
 
-O token expira em duas horas. As rotas `GET /corretor`, `GET /corretor/{id}`, `GET /imagens/{tipo}/{entidadeId}/{imagemId}` e `POST /auth/login` são públicas. As demais exigem autenticação, além das permissões por perfil descritas nas seções abaixo.
+O token expira em duas horas. As rotas `GET /corretor`, `GET /corretor/{id}`, `GET /imagens/{tipo}/{entidadeId}/{imagemId}`, `GET /vitrine/imoveis`, `GET /vitrine/imoveis/{id}` e `POST /auth/login` são públicas. As demais exigem autenticação, além das permissões por perfil descritas nas seções abaixo.
 
 ### Perfis e escopo
 
 | Perfil | Acesso relevante |
 | --- | --- |
 | `ADMINISTRADOR` | Registra usuários; lista, cria, atualiza, ativa, desativa e remove empresas; cria e remove cidades; cria características. |
-| `GESTOR` | Cadastra e ativa/desativa corretores da própria empresa. A empresa precisa estar ativa para cadastrar corretores. |
+| `GESTOR` | Cadastra e ativa/desativa corretores da própria empresa; gerencia documentos, publicação e situação dos imóveis da empresa. A empresa precisa estar ativa. |
 | `CORRETOR` | Cadastra e consulta proprietários da própria empresa e cria/consulta os imóveis da empresa. O corretor precisa estar ativo. |
 | Não autenticado | Consulta a listagem e o perfil público de corretores ativos e busca imagens pela API. |
 
@@ -727,7 +727,46 @@ Código duplicado retorna `409`; preço, área de atuação, ordem de capa ou ou
 
 Listam imóveis da empresa do corretor autenticado ou consultam um imóvel por ID dentro dessa mesma empresa. Resposta `200 OK` com `ImovelResponseDto` (mesmo formato do cadastro). Imóvel inexistente ou de outra empresa retorna `404`.
 
-O código atual não expõe filtro de imóveis por cidade nem rotas para atualizar ou remover imóveis.
+O código atual não expõe filtros por cidade nem rotas para atualizar os dados cadastrais ou remover imóveis. A situação e a publicação possuem operações próprias descritas abaixo.
+
+## Documentos, situação e publicação
+
+As operações de gestão abaixo exigem um gestor ativo da mesma empresa do imóvel. A situação inicial é `DISPONIVEL` e a publicação começa desativada. A publicação é independente da situação: somente imóveis publicados e disponíveis aparecem na vitrine pública. Imóveis cujo corretor foi desativado também ficam ocultos, conforme a regra da W02.
+
+### `PATCH /imovel/{id}/publicacao`
+
+Ativa ou desativa a publicação sem alterar a situação. Para publicar, o endereço precisa ter CEP, logradouro, número, bairro, cidade, latitude e longitude; a resposta `400` informa os campos ausentes. Apartamentos usam o endereço do prédio. Exemplo:
+
+```json
+{
+  "publicado": true
+}
+```
+
+A resposta contém o ID do imóvel, a situação atual e o valor de `publicado`.
+
+### `PATCH /imovel/{id}/situacao`
+
+Atualiza a situação para `DISPONIVEL`, `RESERVADO`, `VENDIDO` ou `ALUGADO`. Cada mudança exige observação e registra autor, data, situação anterior e nova:
+
+```json
+{
+  "situacao": "RESERVADO",
+  "observacao": "Proposta em análise"
+}
+```
+
+`GET /imovel/{id}/historico-situacao` retorna as mudanças em ordem cronológica. Reenviar a situação atual não cria um registro de histórico.
+
+### Documentos do imóvel
+
+É permitido um documento de cada tipo por imóvel: `MATRICULA`, `CARNE_IPTU` e `AUTORIZACAO_PROPRIETARIO`. O arquivo e `dataDocumento` são obrigatórios. Os documentos aceitam PDF, JPEG, PNG ou WebP, com até 5 MB; os bytes são validados e armazenados fora do banco. A listagem e o download são privados e exigem gestor da empresa do imóvel.
+
+`POST /imovel/{id}/documentos` recebe `multipart/form-data` com os campos `tipo`, `dataDocumento` (formato `AAAA-MM-DD`) e a parte `arquivo`. `GET /imovel/{id}/documentos` lista os anexos. Se já houver um documento daquele tipo, use `PUT /imovel/{id}/documentos/{documentoId}` para substituir o arquivo e atualizar a data. O download usa `GET /imovel/{id}/documentos/{documentoId}/arquivo`.
+
+### Vitrine pública
+
+`GET /vitrine/imoveis` lista os imóveis publicados e disponíveis. `GET /vitrine/imoveis/{id}` consulta um imóvel com as mesmas condições; imóveis reservados, vendidos, alugados, não publicados ou atribuídos a corretor inativo retornam `404` no detalhe. A resposta contém os dados de anúncio e não expõe os dados do proprietário.
 
 ## Loteamentos, quadras e lotes
 
@@ -794,11 +833,12 @@ O lote é gravado como imóvel da empresa autenticada, exige preço de venda e f
 
 ### `PATCH /lote/{id}/situacao`
 
-Atualiza a situação para `DISPONIVEL` ou `VENDIDO`, permitindo que a consulta do loteamento reflita os totais por quadra. O ID é o mesmo ID do imóvel/lote e é limitado à empresa autenticada. Exemplo:
+Atualiza a situação para `DISPONIVEL`, `RESERVADO`, `VENDIDO` ou `ALUGADO`, permitindo que a consulta do loteamento reflita os totais por quadra. A mudança também atualiza a situação comum do imóvel e exige observação para o histórico. Exige gestor ativo da empresa autenticada. Exemplo:
 
 ```json
 {
-  "situacao": "VENDIDO"
+  "situacao": "VENDIDO",
+  "observacao": "Venda concluída"
 }
 ```
 
