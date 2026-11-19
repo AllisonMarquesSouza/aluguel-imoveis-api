@@ -1,6 +1,6 @@
 # Status do projeto
 
-> Atualizado em 18/11/2026. Consulte os requisitos e a arquitetura para o detalhamento das regras de negócio e do banco.
+> Atualizado em 19/11/2026. Consulte os requisitos e a arquitetura para o detalhamento das regras de negócio e do banco.
 
 ## W01 — Empresa e usuários
 
@@ -158,7 +158,7 @@
 - [x] `git diff --check`
 - [ ] `MeuImovelApplicationTests.contextLoads` e validação de V9 e V18–V20 — não inicializaram: a conexão local ao PostgreSQL foi bloqueada pelo ambiente (`SQLState 08001`, `SocketException: Operation not permitted`)
 
-O lote é integrado ao cadastro e ao detalhe comum de imóveis. A consulta pública da vitrine foi implementada na W08.
+O lote é integrado ao cadastro e ao detalhe comum de imóveis. A consulta pública básica da vitrine foi criada na W08 e ganhou busca e filtros na W09.
 
 ## W08 — Documentos, publicação, situação e histórico
 
@@ -182,6 +182,27 @@ O lote é integrado ao cadastro e ao detalhe comum de imóveis. A consulta públ
 - [ ] `MeuImovelApplicationTests.contextLoads` e validação das migrations V9, V20–V22 — não inicializaram porque a conexão local ao PostgreSQL foi bloqueada pelo ambiente (`SQLState 08001`, `SocketException: Operation not permitted`)
 
 Os documentos usam armazenamento local configurável por `APP_STORAGE_LOCATION`, separado das imagens e acessível apenas pelas rotas autenticadas de gestão.
+
+## W09 — API pública da vitrine
+
+- [x] Listar cidades da área de atuação das empresas ativas, incluindo nome, ID e UF
+- [x] Exigir cidade na busca pública e manter a consulta limitada à cidade informada
+- [x] Filtrar por texto em título, bairro e descrição; finalidade; natureza; faixa de preço; quartos; suítes; vagas; bairro; faixa de área; e características
+- [x] Centralizar os filtros em uma consulta nativa paginada no `ImovelRepository`, com consulta de contagem correspondente
+- [x] Ordenar por preço, área ou mais recentes e paginar com tamanho limitado
+- [x] Retornar detalhe com fotos, endereço e coordenadas, dados da natureza e corretor responsável
+- [x] Usar DTOs públicos sem proprietário, documentos, código interno do imóvel, observações da empresa ou ID da empresa do prédio
+- [x] Disponibilizar o catálogo de características sem token para preencher esse filtro
+- [x] Permitir acesso sem token às cidades, busca e detalhe da vitrine
+- [x] Documentar parâmetros, semântica dos filtros, paginação e resposta pública
+
+### Verificação
+
+- [x] `./mvnw -q -DskipTests compile`
+- [x] `./mvnw -q -Dtest=ImovelVitrineServiceTest test` — 9 testes passaram
+- [x] `./mvnw -q -Dtest='!MeuImovelApplicationTests' test` — 134 testes passaram
+- [x] `git diff --check`
+- [ ] `MeuImovelApplicationTests.contextLoads` e validação da query nativa — não inicializou porque PostgreSQL não está aceitando conexão em `localhost:5432` (`SQLState 08001`, connection refused)
 
 ## Instrução de continuidade
 

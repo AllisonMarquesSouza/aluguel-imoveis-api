@@ -1,6 +1,7 @@
 package com.br.meuimovel.dtos.imovel;
 
 import com.br.meuimovel.dtos.caracteristica.CaracteristicaResponseDto;
+import com.br.meuimovel.dtos.corretor.CorretorVitrineResponseDto;
 import com.br.meuimovel.enums.FinalidadeImovel;
 import com.br.meuimovel.enums.NaturezaImovel;
 
@@ -10,13 +11,12 @@ import java.util.Set;
 
 public record ImovelVitrineResponseDto(
         Integer id,
-        String codigo,
         String titulo,
         FinalidadeImovel finalidade,
         NaturezaImovel natureza,
         CasaResponseDto casa,
         TerrenoResponseDto terreno,
-        ApartamentoResponseDto apartamento,
+        ApartamentoVitrineResponseDto apartamento,
         LoteResponseDto lote,
         BigDecimal valorVenda,
         BigDecimal valorAluguel,
@@ -24,6 +24,7 @@ public record ImovelVitrineResponseDto(
         BigDecimal valorIptu,
         String descricao,
         EnderecoImovelResponseDto endereco,
+        CorretorVitrineResponseDto corretor,
         Set<CaracteristicaResponseDto> caracteristicas,
         List<FotoImovelResponseDto> fotos
 ) {}

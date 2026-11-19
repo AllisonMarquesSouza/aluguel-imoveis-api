@@ -282,6 +282,8 @@ As histórias do projeto descrevem regras que não estão implementadas por cons
 - Normalizar o número do lote antes da verificação de duplicidade e inicializar sua situação como `DISPONIVEL`; a alteração de situação alimenta os totais de disponíveis e vendidos exibidos por quadra.
 - Armazenar o preço no campo comum `imovel.valor_venda`; o lote guarda número, medidas e condições de parcelamento.
 - Exibir na vitrine pública somente imóveis com `publicado = true`, situação `DISPONIVEL` e corretor ativo; bloquear a publicação enquanto o endereço estiver incompleto.
+- Na busca pública, exigir cidade, paginar resultados e aplicar texto, finalidade, natureza, preço, cômodos, bairro, área e características; a lista de cidades vem da área de atuação das empresas ativas.
+- Montar a resposta pública com DTOs próprios, sem proprietário, documentos, código interno ou identificador do tenant do prédio; incluir endereço/coordenadas, características, fotos, natureza e corretor responsável.
 - Validar dígitos e checksums de CPF/CNPJ, formatos de e-mail e telefone, CEP, e limites geográficos de latitude e longitude. As colunas e constraints atuais não verificam essas regras.
 - Conferir as permissões do perfil logado para cada operação e a coerência entre `usuario.perfil` e as tabelas `gestor`/`corretor`.
 
