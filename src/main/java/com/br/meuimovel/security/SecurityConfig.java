@@ -35,8 +35,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/empresa/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.POST, "/cidade").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.DELETE, "/cidade/{id}").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.GET, "/caracteristica").permitAll()
                         .requestMatchers(HttpMethod.GET, "/corretor", "/corretor/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/vitrine/imoveis", "/vitrine/imoveis/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/vitrine/cidades", "/vitrine/imoveis",
+                                "/vitrine/imoveis/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/demo-assets/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/corretor").hasRole("GESTOR")
                         .requestMatchers(HttpMethod.PATCH, "/corretor/ativar/**", "/corretor/desativar/**")
