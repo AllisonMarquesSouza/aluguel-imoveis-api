@@ -61,7 +61,7 @@ As rotas protegidas usam JWT. Envie o token retornado por `POST /auth/login` no 
 Authorization: Bearer <token>
 ```
 
-O token expira em duas horas. As rotas `GET /corretor`, `GET /corretor/{id}`, `GET /imagens/{tipo}/{entidadeId}/{imagemId}`, `GET /vitrine/imoveis`, `GET /vitrine/imoveis/{id}` e `POST /auth/login` são públicas. As demais exigem autenticação, além das permissões por perfil descritas nas seções abaixo.
+O token expira em duas horas. As rotas `GET /caracteristica`, `GET /corretor`, `GET /corretor/{id}`, `GET /imagens/{tipo}/{entidadeId}/{imagemId}`, `GET /vitrine/cidades`, `GET /vitrine/imoveis`, `GET /vitrine/imoveis/{id}` e `POST /auth/login` são públicas. As demais exigem autenticação, além das permissões por perfil descritas nas seções abaixo.
 
 ### Perfis e escopo
 
@@ -70,11 +70,11 @@ O token expira em duas horas. As rotas `GET /corretor`, `GET /corretor/{id}`, `G
 | `ADMINISTRADOR` | Registra usuários; lista, cria, atualiza, ativa, desativa e remove empresas; cria e remove cidades; cria características. |
 | `GESTOR` | Cadastra e ativa/desativa corretores da própria empresa; gerencia documentos, publicação e situação dos imóveis da empresa. A empresa precisa estar ativa. |
 | `CORRETOR` | Cadastra e consulta proprietários da própria empresa e cria/consulta os imóveis da empresa. O corretor precisa estar ativo. |
-| Não autenticado | Consulta a listagem e o perfil público de corretores ativos e busca imagens pela API. |
+| Não autenticado | Consulta características, corretores ativos, cidades e imóveis publicados na vitrine e busca imagens pela API. |
 
 As consultas de empresa por ID permitem ao administrador consultar qualquer empresa e aos demais usuários consultar apenas a empresa associada à própria conta. Proprietários e imóveis também são limitados à empresa do corretor autenticado. Uma tentativa de consultar um recurso de outra empresa pode retornar `404`.
 
-As consultas `GET /cidade`, `GET /cidade/{id}`, `GET /caracteristica` e `GET /caracteristica/nome` exigem autenticação. A resposta de acesso negado depende de onde a permissão foi recusada: as regras do serviço retornam `401`; o Spring Security também pode retornar `403`.
+As consultas `GET /cidade`, `GET /cidade/{id}` e `GET /caracteristica/nome` exigem autenticação. `GET /caracteristica` é público para fornecer os IDs do filtro da vitrine. A resposta de acesso negado depende de onde a permissão foi recusada: as regras do serviço retornam `401`; o Spring Security também pode retornar `403`.
 
 ## Formato de erros
 
@@ -329,7 +329,7 @@ Remove cidade. Exige `ADMINISTRADOR`. Resposta `204 No Content`; cidade inexiste
 
 ### `GET /caracteristica`
 
-Lista características. Exige autenticação. Resposta `200 OK`, com itens no formato:
+Lista características. É pública para preencher os filtros da vitrine. Resposta `200 OK`, com itens no formato:
 
 ```json
 [{ "id": 3, "nome": "Piscina" }]
@@ -766,7 +766,17 @@ Atualiza a situação para `DISPONIVEL`, `RESERVADO`, `VENDIDO` ou `ALUGADO`. Ca
 
 ### Vitrine pública
 
-`GET /vitrine/imoveis` lista os imóveis publicados e disponíveis. `GET /vitrine/imoveis/{id}` consulta um imóvel com as mesmas condições; imóveis reservados, vendidos, alugados, não publicados ou atribuídos a corretor inativo retornam `404` no detalhe. A resposta contém os dados de anúncio e não expõe os dados do proprietário.
+`GET /vitrine/cidades` lista as cidades da área de atuação das empresas ativas, com `id`, nome e UF. A busca sempre exige `cidadeId`, que pode ser obtido nesse endpoint:
+
+```http
+GET /vitrine/imoveis?cidadeId=1&texto=sol&finalidade=VENDA&natureza=CASA&quartos=3&ordenacao=MENOR_PRECO&pagina=0&tamanho=12
+```
+
+Filtros opcionais: `texto` procura sem diferenciar maiúsculas/minúsculas em título, bairro e descrição; `finalidade` aceita `VENDA`, `ALUGUEL` ou `VENDA_E_ALUGUEL` (a busca por venda ou aluguel também inclui anúncios das duas finalidades); `natureza` aceita `CASA`, `TERRENO`, `APARTAMENTO` ou `LOTE`; `precoMinimo` e `precoMaximo` limitam a faixa de preço; `quartos`, `suites` e `vagas` definem quantidades mínimas; `bairro` procura o bairro sem diferenciar maiúsculas/minúsculas; `areaMinima` e `areaMaxima` limitam a área; e `caracteristicas` pode ser repetido para exigir todas as características informadas, por exemplo `&caracteristicas=2&caracteristicas=5`. Use `GET /caracteristica` para consultar o catálogo público e obter os IDs.
+
+A área usada no filtro é a construída para casa, privativa para apartamento, total para terreno e a área do lote. Para faixa e ordenação de preço, `finalidade=ALUGUEL` usa o aluguel; as demais finalidades usam o preço de venda. Sem finalidade informada, usa o preço de venda quando existe e, caso contrário, o aluguel. A ordenação aceita `MAIS_RECENTES` (padrão, usando o ID decrescente), `MENOR_PRECO`, `MAIOR_PRECO`, `MENOR_AREA` ou `MAIOR_AREA`. A paginação começa em zero, usa 12 itens por padrão e aceita até 50 por página. A resposta é uma página com `content`, `totalElements`, `totalPages`, `number` e os demais metadados do Spring Data.
+
+Todos os resultados são publicados, disponíveis e atribuídos a corretores ativos. `GET /vitrine/imoveis/{id}` consulta o detalhe com fotos, endereço e coordenadas, dados da natureza e informações públicas do corretor responsável. Imóveis reservados, vendidos, alugados, não publicados ou atribuídos a corretor inativo retornam `404` no detalhe. Os DTOs públicos não incluem proprietário, documentos, código interno do imóvel, identificador da empresa do prédio nem observações internas.
 
 ## Loteamentos, quadras e lotes
 
