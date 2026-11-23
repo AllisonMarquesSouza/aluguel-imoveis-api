@@ -61,14 +61,14 @@ As rotas protegidas usam JWT. Envie o token retornado por `POST /auth/login` no 
 Authorization: Bearer <token>
 ```
 
-O token expira em duas horas. As rotas `GET /caracteristica`, `GET /corretor`, `GET /corretor/{id}`, `GET /imagens/{tipo}/{entidadeId}/{imagemId}`, `GET /vitrine/cidades`, `GET /vitrine/imoveis`, `GET /vitrine/imoveis/{id}` e `POST /auth/login` são públicas. As demais exigem autenticação, além das permissões por perfil descritas nas seções abaixo.
+O token expira em duas horas. As rotas `GET /caracteristica`, `GET /corretor`, `GET /corretor/{id}`, `GET /imagens/{tipo}/{entidadeId}/{imagemId}`, `GET /vitrine/cidades`, `GET /vitrine/imoveis`, `GET /vitrine/imoveis/{id}` e `POST /auth/login` são públicas. `GET /corretor/empresa/ativos` e `GET /corretor/empresa/inativos` exigem autenticação de um gestor ativo e listam os corretores da empresa vinculada ao token, conforme o status da rota. As demais rotas exigem autenticação, além das permissões por perfil descritas nas seções abaixo.
 
 ### Perfis e escopo
 
 | Perfil | Acesso relevante |
 | --- | --- |
 | `ADMINISTRADOR` | Registra usuários; lista, cria, atualiza, ativa, desativa e remove empresas; cria e remove cidades; cria características. |
-| `GESTOR` | Cadastra e ativa/desativa corretores da própria empresa; gerencia documentos, publicação e situação dos imóveis da empresa. A empresa precisa estar ativa. |
+| `GESTOR` | Cadastra, lista corretores ativos e inativos e ativa/desativa corretores da própria empresa; gerencia documentos, publicação e situação dos imóveis da empresa. O cadastro de corretores exige empresa ativa. |
 | `CORRETOR` | Cadastra e consulta proprietários da própria empresa e cria/consulta os imóveis da empresa. O corretor precisa estar ativo. |
 | Não autenticado | Consulta características, corretores ativos, cidades e imóveis publicados na vitrine e busca imagens pela API. |
 
@@ -384,6 +384,10 @@ Rotas públicas. Listam corretores ativos ou consultam o perfil público de um c
 ```
 
 O objeto público da empresa inclui também seus dados de contato e endereço disponíveis no DTO.
+
+### `GET /corretor/empresa/ativos` e `GET /corretor/empresa/inativos`
+
+Exigem `GESTOR` ativo. Listam, em ordem alfabética, os corretores da empresa associada ao gestor autenticado; a empresa é obtida do token e a requisição não aceita um ID de empresa. Cada rota retorna `200 OK` com uma lista de `CorretorResponseDto`: `/ativos` retorna usuários com status `ATIVO`, e `/inativos` retorna status `INATIVO`. A resposta contém os dados de contato e os IDs de imagem do corretor.
 
 ### `POST /corretor`
 

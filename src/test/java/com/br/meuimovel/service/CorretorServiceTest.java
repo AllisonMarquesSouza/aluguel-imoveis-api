@@ -180,7 +180,7 @@ class CorretorServiceTest {
     @Test
     void listPublicProfilesMapsCorretorAndCompanyAndRequestsOnlyActiveCorretores() {
         Corretor corretor = corretor(21, 7, UsuarioStatus.ATIVO);
-        when(corretorRepository.findDistinctByUsuario_StatusOrderByUsuario_NomeAsc(UsuarioStatus.ATIVO))
+        when(corretorRepository.findByUsuario_StatusOrderByUsuario_NomeAsc(UsuarioStatus.ATIVO))
                 .thenReturn(List.of(corretor));
 
         List<CorretorPublicoResponseDto> response = corretorService.listarPublicos();
@@ -196,7 +196,50 @@ class CorretorServiceTest {
         assertEquals(LOGO_IMAGEM_ID, empresaResponse.logoImagemId());
         assertEquals(new CidadeResponseDto(4, "Recife", "PE"), empresaResponse.cidadeBase());
         assertEquals(List.of(new CidadeResponseDto(4, "Recife", "PE")), empresaResponse.cidadesAtuacao());
-        verify(corretorRepository).findDistinctByUsuario_StatusOrderByUsuario_NomeAsc(UsuarioStatus.ATIVO);
+        verify(corretorRepository).findByUsuario_StatusOrderByUsuario_NomeAsc(UsuarioStatus.ATIVO);
+    }
+
+    @Test
+    void listActiveCorretoresUsesAuthenticatedGestorCompanyAndMapsManagementResponse() {
+        autenticar(gestor(empresa(7)));
+        Corretor corretor = corretor(21, 7, UsuarioStatus.ATIVO);
+        when(corretorRepository.findByUsuario_Empresa_IdAndUsuario_StatusOrderByUsuario_NomeAsc(
+                7, UsuarioStatus.ATIVO)).thenReturn(List.of(corretor));
+
+        var response = corretorService.listarAtivosDaEmpresa();
+
+        assertEquals(1, response.size());
+        assertEquals(21, response.get(0).id());
+        assertEquals("Corretor 21", response.get(0).nome());
+        assertEquals("corretor21@example.com", response.get(0).email());
+        assertEquals(FOTO_IMAGEM_ID, response.get(0).fotoImagemId());
+        verify(corretorRepository).findByUsuario_Empresa_IdAndUsuario_StatusOrderByUsuario_NomeAsc(
+                7, UsuarioStatus.ATIVO);
+    }
+
+    @Test
+    void listActiveCorretoresRejectsNonGestor() {
+        autenticar(usuario(empresa(7), UsuarioPerfil.CORRETOR, UsuarioStatus.ATIVO));
+
+        assertThrows(UnauthorizedOperationException.class, corretorService::listarAtivosDaEmpresa);
+
+        verifyNoInteractions(corretorRepository);
+    }
+
+    @Test
+    void listInactiveCorretoresUsesAuthenticatedGestorCompanyAndRequestsInactiveStatus() {
+        autenticar(gestor(empresa(7)));
+        Corretor corretor = corretor(21, 7, UsuarioStatus.INATIVO);
+        when(corretorRepository.findByUsuario_Empresa_IdAndUsuario_StatusOrderByUsuario_NomeAsc(
+                7, UsuarioStatus.INATIVO)).thenReturn(List.of(corretor));
+
+        var response = corretorService.listarInativosDaEmpresa();
+
+        assertEquals(1, response.size());
+        assertEquals(21, response.get(0).id());
+        assertEquals("Corretor 21", response.get(0).nome());
+        verify(corretorRepository).findByUsuario_Empresa_IdAndUsuario_StatusOrderByUsuario_NomeAsc(
+                7, UsuarioStatus.INATIVO);
     }
 
     @Test
