@@ -261,6 +261,8 @@ As FKs de `imovel` verificam separadamente que a empresa, o corretor e o proprie
 
 Por isso, o serviço deve derivar o tenant da identidade autenticada e aplicar o filtro `empresa_id` em toda leitura ou alteração do acervo. Deve ainda validar, antes de gravar ou associar referências, que corretor, proprietário, imóvel, prédio e loteamento pertencem à mesma empresa e que a cidade escolhida está na área de atuação dela. `apartamento.predio_id` tem FK para um prédio existente, mas a igualdade entre `imovel.empresa_id` e `predio.empresa_id` é validada pelo serviço ao vincular a unidade. Da mesma forma, a empresa do lote e a empresa do loteamento da sua quadra são conferidas pelo serviço. O `empresa_id` recebido do cliente não deve ser aceito como prova de acesso. A autorização também precisa conferir o perfil e a empresa do usuário; as FKs de `gestor` e `corretor` garantem apenas a existência do usuário.
 
+Os endpoints `GET /corretor/empresa/ativos` e `GET /corretor/empresa/inativos` seguem essa regra: exigem um gestor ativo, derivam a empresa do token e listam somente os corretores daquele tenant com o status correspondente. A listagem pública global de corretores ativos permanece em `GET /corretor`.
+
 Alguns campos têm unicidade global apesar da separação por empresa: `usuario.email`, `empresa.documento` e `corretor.creci`. Assim, o banco não permite reutilizar esses valores em tenants distintos. Essa é a regra definida pelo SQL atual.
 
 ## Validações que pertencem ao serviço

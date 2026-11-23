@@ -20,15 +20,16 @@
 
 - [x] Implementação-base existente: cadastro, vínculo com empresa e validação de foto
 - [x] Expor ativação e desativação de corretores pela API, restritas a gestores da própria empresa
+- [x] Disponibilizar listagens autenticadas dos corretores ativos e inativos da empresa do gestor, derivando o tenant do token
 - [x] Disponibilizar listagem e perfil público do corretor com dados públicos da empresa
-- [x] Ocultar corretores inativos da listagem e do perfil público, incluindo seus contatos
+- [x] Ocultar corretores inativos da vitrine e do perfil público, incluindo seus contatos
 - [x] Cobrir cadastro, autorização, isolamento por empresa, transições de status e perfil público com testes unitários
 
 ### Verificação
 
-- [x] Testes unitários de CorretorService, EmpresaService, ProprietarioService e ImovelService: 49 testes passaram
+- [x] `CorretorServiceTest`: 15 testes passaram; suíte unitária do projeto, excluindo `MeuImovelApplicationTests`: 125 testes passaram
 - [x] `git diff --check`
-- [ ] Teste de contexto do Spring não executado nesta validação
+- [ ] `MeuImovelApplicationTests.contextLoads`: não inicializou porque a conexão ao PostgreSQL local foi bloqueada no ambiente (`SQLState 08001`, `SocketException: Operation not permitted`)
 
 ## W03 — Proprietários e características
 
