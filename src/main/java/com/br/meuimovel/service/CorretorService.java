@@ -93,18 +93,7 @@ public class CorretorService {
         //ajustar a verificacao caso salvar um corretor falhe, a imagem ainda estaria salva
         //logo, dar um rollback na imagem tambem, o transactional nao funciona para ela.
 
-        return CorretorResponseDto.builder()
-                .id(corretor.getId())
-                .nome(usuario.getNome())
-                .creci(corretor.getCreci())
-                .fotoUrl(corretor.getFotoUrl())
-                .fotoImagemId(ImagemUrl.extrairImagemId(
-                        corretor.getFotoUrl(), TipoImagem.CORRETOR, corretor.getId()))
-                .telefone(corretor.getTelefone())
-                .whatsapp(corretor.getWhatsapp())
-                .email(usuario.getEmail())
-                .apresentacao(corretor.getApresentacao())
-                .build();
+        return toResponse(corretor);
     }
 
     @Transactional
@@ -133,9 +122,29 @@ public class CorretorService {
 
     @Transactional(readOnly = true)
     public List<CorretorPublicoResponseDto> listarPublicos() {
-        return corretorRepository.findDistinctByUsuario_StatusOrderByUsuario_NomeAsc(UsuarioStatus.ATIVO)
+        return corretorRepository.findByUsuario_StatusOrderByUsuario_NomeAsc(UsuarioStatus.ATIVO)
                 .stream()
                 .map(this::toPublicResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CorretorResponseDto> listarAtivosDaEmpresa() {
+        Integer empresaId = getGestorAutenticado().getEmpresa().getId();
+        return corretorRepository.findByUsuario_Empresa_IdAndUsuario_StatusOrderByUsuario_NomeAsc
+                        (empresaId, UsuarioStatus.ATIVO)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CorretorResponseDto> listarInativosDaEmpresa() {
+        Integer empresaId = getGestorAutenticado().getEmpresa().getId();
+        return corretorRepository.findByUsuario_Empresa_IdAndUsuario_StatusOrderByUsuario_NomeAsc
+                        (empresaId, UsuarioStatus.INATIVO)
+                .stream()
+                .map(this::toResponse)
                 .toList();
     }
 
@@ -160,6 +169,22 @@ public class CorretorService {
                 corretor.getTelefone(), corretor.getWhatsapp(), usuario.getEmail(), corretor.getApresentacao(),
                 empresa == null ? null : toEmpresaPublica(empresa)
         );
+    }
+
+    private CorretorResponseDto toResponse(Corretor corretor) {
+        Usuario usuario = corretor.getUsuario();
+        return CorretorResponseDto.builder()
+                .id(corretor.getId())
+                .nome(usuario.getNome())
+                .creci(corretor.getCreci())
+                .fotoUrl(corretor.getFotoUrl())
+                .fotoImagemId(ImagemUrl.extrairImagemId(
+                        corretor.getFotoUrl(), TipoImagem.CORRETOR, corretor.getId()))
+                .telefone(corretor.getTelefone())
+                .whatsapp(corretor.getWhatsapp())
+                .email(usuario.getEmail())
+                .apresentacao(corretor.getApresentacao())
+                .build();
     }
 
     private EmpresaPublicaResponseDto toEmpresaPublica(Empresa empresa) {

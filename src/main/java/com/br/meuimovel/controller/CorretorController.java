@@ -36,6 +36,16 @@ public class CorretorController {
         return ResponseEntity.ok(corretorService.listarPublicos());
     }
 
+    @GetMapping("/empresa/ativos")
+    public ResponseEntity<List<CorretorResponseDto>> listarAtivosDaEmpresa() {
+        return ResponseEntity.ok(corretorService.listarAtivosDaEmpresa());
+    }
+
+    @GetMapping("/empresa/inativos")
+    public ResponseEntity<List<CorretorResponseDto>> listarInativosDaEmpresa() {
+        return ResponseEntity.ok(corretorService.listarInativosDaEmpresa());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<CorretorPublicoResponseDto> getPerfilPublico(@PathVariable Integer id) {
         return ResponseEntity.ok(corretorService.getPerfilPublico(id));
