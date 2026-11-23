@@ -47,7 +47,7 @@ public class AutenticacaoService{
         Usuario usuario = (Usuario) authenticate.getPrincipal();
         String token = jwtService.generateToken(usuario);
 
-        return new TokenDto(token);
+        return new TokenDto(token, usuario.getPerfil());
     }
 
     private void exigirAdministrador() {

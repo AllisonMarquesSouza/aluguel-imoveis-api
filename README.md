@@ -121,9 +121,11 @@ Autentica um usuário. Não exige token.
 
 ```json
 {
-  "token": "<jwt>"
+  "token": "<jwt>",
+  "perfil": "CORRETOR"
 }
 ```
+Retorna o token + perfil do usuário, se o login for executado com sucesso.
 
 Credenciais incorretas ou usuário inativo/bloqueado retornam `401`.
 
