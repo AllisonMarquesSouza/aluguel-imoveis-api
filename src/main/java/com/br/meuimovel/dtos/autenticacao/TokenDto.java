@@ -1,4 +1,6 @@
 package com.br.meuimovel.dtos.autenticacao;
 
-public record TokenDto(String token) {
+import com.br.meuimovel.enums.UsuarioPerfil;
+
+public record TokenDto(String token, UsuarioPerfil perfil) {
 }
