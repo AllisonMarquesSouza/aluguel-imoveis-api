@@ -67,9 +67,9 @@ O token expira em duas horas. As rotas `GET /caracteristica`, `GET /corretor`, `
 
 | Perfil | Acesso relevante |
 | --- | --- |
-| `ADMINISTRADOR` | Registra usuários; lista, cria, atualiza, ativa, desativa e remove empresas; cria e remove cidades; cria características. |
-| `GESTOR` | Cadastra, lista corretores ativos e inativos e ativa/desativa corretores da própria empresa; gerencia documentos, publicação, situação e contatos dos imóveis da empresa. O cadastro de corretores exige empresa ativa. |
-| `CORRETOR` | Cadastra e consulta proprietários da própria empresa, cria/consulta imóveis e acompanha contatos dos seus imóveis. O corretor precisa estar ativo. |
+| `ADMINISTRADOR` | Registra e gerencia usuários de qualquer empresa; lista, cria, atualiza, ativa, desativa e remove empresas; cria e remove cidades; cria características. |
+| `GESTOR` | Consulta, edita e altera a situação dos usuários da própria empresa; cadastra, atualiza, lista corretores ativos e inativos e ativa/desativa corretores da empresa; consulta e atualiza imóveis, loteamentos e lotes da empresa; gerencia documentos, publicação, situação e contatos dos imóveis. |
+| `CORRETOR` | Cadastra e consulta proprietários da própria empresa, cria, consulta e atualiza imóveis e consulta loteamentos e lotes da empresa; acompanha contatos dos seus imóveis. O corretor precisa estar ativo. |
 | Não autenticado | Consulta características, corretores ativos, cidades e imóveis publicados na vitrine, registra contatos e busca imagens pela API. |
 
 As consultas de empresa por ID permitem ao administrador consultar qualquer empresa e aos demais usuários consultar apenas a empresa associada à própria conta. Proprietários e imóveis também são limitados à empresa do corretor autenticado. Uma tentativa de consultar um recurso de outra empresa pode retornar `404`.
@@ -162,7 +162,25 @@ Registra um usuário. Exige `ADMINISTRADOR`.
 
 O campo `empresa` é nulo para um administrador e contém a entidade `Empresa` associada para os demais perfis; o exemplo acima está resumido. E-mail já cadastrado ou associação de perfil/empresa incompatível retorna `409`.
 
+### Consulta e manutenção de usuários
+
+Consulta, edição e alteração de situação exigem `ADMINISTRADOR` ou `GESTOR`. O administrador lista e consulta usuários de qualquer empresa; o gestor só acessa usuários associados à empresa do próprio token. Essas operações não aceitam alteração de perfil ou empresa. A troca de senha é permitida a qualquer usuário ativo para a própria conta. A criação de contas permanece em `POST /auth/register`; o cadastro profissional do corretor permanece em `POST /corretor`.
+
+| Método e rota | Operação |
+| --- | --- |
+| `GET /usuario` | Lista usuários por nome; para gestor, somente os da empresa autenticada. |
+| `GET /usuario/{id}` | Consulta usuário; IDs fora do tenant do gestor retornam `404`. |
+| `PUT /usuario/{id}` | Atualiza nome e e-mail. |
+| `PATCH /usuario/{id}/situacao` | Altera para `ATIVO`, `INATIVO` ou `BLOQUEADO`. |
+| `PATCH /usuario/senha` | Permite a qualquer usuário ativo trocar a própria senha, confirmando a senha atual. |
+
+O corpo de `PUT` contém `nome` e `email`; a alteração de situação recebe `status`. A troca de senha recebe `senhaAtual`, `novaSenha` e `confirmacaoNovaSenha`; a nova senha deve ter de 12 a 255 caracteres, confirmar corretamente, ser diferente da senha atual e não ultrapassar 72 bytes em UTF-8 (limite do BCrypt). Retorna `204 No Content`; senha atual incorreta retorna `401` e senha nova inválida retorna `400`. As respostas de consulta e edição incluem ID da empresa, perfil e situação, nunca a senha. Contas inativas ou bloqueadas não autenticam nem com tokens emitidos anteriormente.
+
 ## Empresas
+
+### `GET /empresa/atual`
+
+Retorna o contexto da empresa vinculada ao gestor autenticado (`id`, tipo, nome e referência da logomarca). Exige `GESTOR` ativo e não aceita ID enviado pelo cliente. O `id` e `logoImagemId` permitem usar as rotas existentes de imagem da própria empresa.
 
 ### `GET /empresa`
 
@@ -409,6 +427,10 @@ Cadastra corretor para a empresa do gestor autenticado. Exige `GESTOR` ativo, em
 
 Nome, e-mail, senha, CRECI, telefone, WhatsApp e apresentação são obrigatórios; e-mail deve ser válido; senha deve ter de 12 a 255 caracteres. Resposta `201 Created` com os dados do corretor, sem a senha.
 
+### `PUT /corretor/{id}`
+
+Atualiza nome, e-mail, CRECI, telefone, WhatsApp e apresentação. Exige gestor ativo e corretor da mesma empresa. E-mail ou CRECI duplicado retorna `409`; ID de outra empresa retorna `404`. A senha não é alterada neste fluxo; a foto continua sendo atualizada pela operação `PUT /imagens/corretor/{id}/{imagemId}`.
+
 ### Ativar e desativar corretor
 
 Exigem `GESTOR` ativo e o corretor precisa pertencer à mesma empresa do gestor. Ambos retornam `204 No Content`.
@@ -460,6 +482,10 @@ Cadastra proprietário na empresa do corretor autenticado.
   "observacoes": "Prefere contato à tarde"
 }
 ```
+
+### `PUT /proprietario/{id}`
+
+Atualiza tipo de documento, documento, nome, telefone, e-mail e observações do proprietário da empresa do corretor autenticado. O vínculo de empresa não pode ser alterado pelo corpo. O documento passa pela mesma validação do cadastro; duplicidade dentro da empresa retorna `409`, e ID de outra empresa retorna `404`.
 
 ## Prédios
 
@@ -731,9 +757,13 @@ Código duplicado retorna `409`; preço, área de atuação, ordem de capa ou ou
 
 ### `GET /imovel` e `GET /imovel/{id}`
 
-Listam imóveis da empresa do corretor autenticado ou consultam um imóvel por ID dentro dessa mesma empresa. Resposta `200 OK` com `ImovelResponseDto` (mesmo formato do cadastro). Imóvel inexistente ou de outra empresa retorna `404`.
+Corretor e gestor ativos listam imóveis da própria empresa ou consultam um imóvel por ID dentro desse tenant. A resposta contém os IDs de imóvel, corretor e proprietário necessários às operações de gestão. Imóvel inexistente ou de outra empresa retorna `404`.
 
-O código atual não expõe filtros por cidade nem rotas para atualizar os dados cadastrais ou remover imóveis. A situação e a publicação possuem operações próprias descritas abaixo.
+### `PUT /imovel/{id}`
+
+Corretor e gestor ativos da mesma empresa podem atualizar os dados comuns e o bloco da natureza do imóvel. O corpo recebe `codigo`, `titulo`, `corretorId`, `proprietarioId`, `finalidade`, valores, descrição, `natureza`, `caracteristicasIds` e o bloco compatível (`casa`, `terreno`, `apartamento` ou `lote`), além do `endereco` quando a natureza não é apartamento. O endereço do apartamento vem do prédio. O corretor indicado, o proprietário, o prédio ou a quadra devem pertencer à empresa autenticada; cidades respeitam a área de atuação e lote permanece na cidade do loteamento. Código, unidade e número de lote duplicados são recusados. Fotos continuam sendo administradas pelas rotas de imagem.
+
+O corpo é uma atualização completa dos campos aceitos: características podem ser esvaziadas enviando conjunto vazio, e os dados de natureza devem corresponder à natureza selecionada. A situação e a publicação não são alteradas por este endpoint.
 
 ## Documentos, situação e publicação
 
@@ -803,7 +833,7 @@ Para WhatsApp, a resposta `201 Created` inclui `whatsappUrl` em `https://wa.me/`
 
 ## Loteamentos, quadras e lotes
 
-As rotas exigem um corretor ativo vinculado a uma empresa ativa. O loteamento pertence à empresa autenticada e à cidade informada, que deve fazer parte da área de atuação. Os campos `asfalto`, `agua`, `energia`, `esgoto` e `iluminacaoPublica` descrevem a infraestrutura; `areasLazer` é texto livre e pode ser omitido.
+As consultas são permitidas a corretores e gestores ativos e limitadas à empresa autenticada. Cadastro de loteamento e quadras continua restrito ao corretor ativo de empresa ativa. O loteamento pertence à empresa e à cidade informada, que deve fazer parte da área de atuação. Os campos `asfalto`, `agua`, `energia`, `esgoto` e `iluminacaoPublica` descrevem a infraestrutura; `areasLazer` é texto livre e pode ser omitido.
 
 ### `POST /loteamento`
 
@@ -823,7 +853,9 @@ Cadastra um loteamento. Exemplo de corpo:
 }
 ```
 
-`GET /loteamento` lista os loteamentos da empresa e `GET /loteamento/{id}` consulta um deles. A resposta inclui as quadras e a contagem de lotes disponíveis e vendidos em cada uma. IDs de outra empresa retornam `404`.
+`GET /loteamento` lista os loteamentos da empresa e `GET /loteamento/{id}` consulta um deles. A resposta inclui IDs de quadras e a contagem de lotes disponíveis e vendidos em cada uma. IDs de outra empresa retornam `404`.
+
+`GET /loteamento/{loteamentoId}/quadras/{quadraId}/lotes` lista os lotes da quadra, incluindo ID, número, situação e dados da quadra/loteamento. O ID retornado pode ser usado em `PATCH /lote/{id}/situacao`, restrito ao gestor da empresa. IDs de quadra ou loteamento fora da relação indicada ou de outra empresa retornam `404`.
 
 ### `POST /loteamento/{id}/quadras`
 

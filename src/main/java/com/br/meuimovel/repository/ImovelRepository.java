@@ -18,6 +18,7 @@ import java.util.Optional;
 public interface ImovelRepository extends JpaRepository<Imovel, Integer> {
 
     boolean existsByEmpresa_IdAndCodigo(Integer empresaId, String codigo);
+    boolean existsByEmpresa_IdAndCodigoAndIdNot(Integer empresaId, String codigo, Integer id);
 
     List<Imovel> findAllByEmpresa_Id(Integer empresaId);
 

@@ -6,6 +6,7 @@ import com.br.meuimovel.enums.SituacaoImovel;
 import java.math.BigDecimal;
 
 public record LoteResponseDto(
+        Integer id,
         String numero,
         BigDecimal area,
         BigDecimal frente,

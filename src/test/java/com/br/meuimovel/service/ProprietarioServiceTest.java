@@ -1,6 +1,7 @@
 package com.br.meuimovel.service;
 
 import com.br.meuimovel.dtos.proprietario.ProprietarioCreateDto;
+import com.br.meuimovel.dtos.proprietario.ProprietarioUpdateDto;
 import com.br.meuimovel.enums.TipoDocumento;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
@@ -123,6 +124,42 @@ class ProprietarioServiceTest {
 
         assertThrows(ProprietarioAlreadyExistsException.class, () -> proprietarioService.create(createDto));
 
+        verify(proprietarioRepository, never()).save(any(Proprietario.class));
+    }
+
+    @Test
+    void updateValidatesDocumentAndKeepsOwnerInAuthenticatedCompany() {
+        Usuario corretor = autenticarCorretor(7);
+        Proprietario proprietario = proprietario(31, 7);
+        ProprietarioUpdateDto dto = new ProprietarioUpdateDto(
+                TipoDocumento.CPF, "529.982.247-25", "Ana Atualizada", "81911112222",
+                "ana.atualizada@example.com", "Novo contato");
+        when(proprietarioRepository.findByIdAndEmpresa_Id(31, 7)).thenReturn(Optional.of(proprietario));
+        when(documentoValidator.validar(TipoDocumento.CPF, dto.documento())).thenReturn("52998224725");
+        when(proprietarioRepository.existsByEmpresaIdAndDocumentoAndIdNot(7, "52998224725", 31))
+                .thenReturn(false);
+        when(proprietarioRepository.save(proprietario)).thenReturn(proprietario);
+
+        var response = proprietarioService.atualizar(31, dto);
+
+        assertEquals("Ana Atualizada", response.nome());
+        assertEquals("ana.atualizada@example.com", response.email());
+        assertEquals("Novo contato", response.observacoes());
+        assertEquals(corretor.getEmpresa().getId(), proprietario.getEmpresa().getId());
+        verify(proprietarioRepository).findByIdAndEmpresa_Id(31, 7);
+        verify(proprietarioRepository).save(proprietario);
+    }
+
+    @Test
+    void updateRejectsOwnerFromAnotherCompany() {
+        autenticarCorretor(7);
+        when(proprietarioRepository.findByIdAndEmpresa_Id(31, 7)).thenReturn(Optional.empty());
+
+        assertThrows(com.br.meuimovel.exception.ProprietarioNotFoundException.class,
+                () -> proprietarioService.atualizar(31, new ProprietarioUpdateDto(
+                        TipoDocumento.CPF, "52998224725", "Ana", "81911112222", "ana@example.com", null)));
+
+        verifyNoInteractions(documentoValidator);
         verify(proprietarioRepository, never()).save(any(Proprietario.class));
     }
 

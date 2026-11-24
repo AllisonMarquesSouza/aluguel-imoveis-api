@@ -14,6 +14,7 @@ import com.br.meuimovel.model.Loteamento;
 import com.br.meuimovel.model.Quadra;
 import com.br.meuimovel.model.Usuario;
 import com.br.meuimovel.repository.LoteRepository;
+import com.br.meuimovel.repository.QuadraRepository;
 import com.br.meuimovel.repository.ImovelRepository;
 import com.br.meuimovel.repository.HistoricoSituacaoImovelRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -36,6 +37,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class LoteServiceTest {
     @Mock private LoteRepository loteRepository;
+    @Mock private QuadraRepository quadraRepository;
     @Mock private ImovelRepository imovelRepository;
     @Mock private HistoricoSituacaoImovelRepository historicoRepository;
     @InjectMocks private LoteService loteService;
@@ -81,6 +83,36 @@ class LoteServiceTest {
                         new LoteSituacaoUpdateDto(SituacaoImovel.VENDIDO, "Venda concluída")));
 
         verify(loteRepository, never()).save(any(Lote.class));
+    }
+
+    @Test
+    void listByQuadraReturnsLotIdsAndSituationsWithinTenant() {
+        Usuario usuario = autenticarGestor();
+        Lote lote = lote(usuario.getEmpresa());
+        when(quadraRepository.findByIdAndLoteamento_IdAndLoteamento_Empresa_Id(90, 70, 7))
+                .thenReturn(Optional.of(lote.getQuadra()));
+        when(loteRepository.findAllByQuadra_IdAndImovel_Empresa_IdOrderByNumeroAsc(90, 7))
+                .thenReturn(java.util.List.of(lote));
+
+        var response = loteService.listarPorQuadra(70, 90);
+
+        assertEquals(1, response.size());
+        assertEquals(42, response.get(0).id());
+        assertEquals(SituacaoImovel.DISPONIVEL, response.get(0).situacao());
+        assertEquals(90, response.get(0).quadra().id());
+        verify(loteRepository).findAllByQuadra_IdAndImovel_Empresa_IdOrderByNumeroAsc(90, 7);
+    }
+
+    @Test
+    void listByQuadraRejectsQuadraOutsideRequestedSubdivisionOrTenant() {
+        autenticarGestor();
+        when(quadraRepository.findByIdAndLoteamento_IdAndLoteamento_Empresa_Id(90, 70, 7))
+                .thenReturn(Optional.empty());
+
+        assertThrows(com.br.meuimovel.exception.QuadraNotFoundException.class,
+                () -> loteService.listarPorQuadra(70, 90));
+
+        verifyNoInteractions(loteRepository);
     }
 
     private Usuario autenticarGestor() {

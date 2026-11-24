@@ -1,6 +1,7 @@
 package com.br.meuimovel.controller;
 
 import com.br.meuimovel.dtos.corretor.CorretorCreateDto;
+import com.br.meuimovel.dtos.corretor.CorretorUpdateDto;
 import com.br.meuimovel.dtos.corretor.CorretorPublicoResponseDto;
 import com.br.meuimovel.dtos.corretor.CorretorResponseDto;
 import com.br.meuimovel.service.CorretorService;
@@ -49,6 +50,14 @@ public class CorretorController {
     @GetMapping("/{id}")
     public ResponseEntity<CorretorPublicoResponseDto> getPerfilPublico(@PathVariable Integer id) {
         return ResponseEntity.ok(corretorService.getPerfilPublico(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<CorretorResponseDto> atualizar(
+            @PathVariable Integer id,
+            @RequestBody @Valid CorretorUpdateDto dto
+    ) {
+        return ResponseEntity.ok(corretorService.atualizar(id, dto));
     }
 
     @PatchMapping("/ativar/{id}")

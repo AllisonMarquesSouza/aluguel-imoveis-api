@@ -4,7 +4,9 @@ import com.br.meuimovel.dtos.loteamento.LoteamentoCreateDto;
 import com.br.meuimovel.dtos.loteamento.LoteamentoResponseDto;
 import com.br.meuimovel.dtos.loteamento.QuadraCreateDto;
 import com.br.meuimovel.dtos.loteamento.QuadraResponseDto;
+import com.br.meuimovel.dtos.imovel.LoteResponseDto;
 import com.br.meuimovel.service.LoteamentoService;
+import com.br.meuimovel.service.LoteService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,7 @@ import java.util.List;
 @RequestMapping("/loteamento")
 public class LoteamentoController {
     private final LoteamentoService loteamentoService;
+    private final LoteService loteService;
 
     @PostMapping
     public ResponseEntity<LoteamentoResponseDto> create(@RequestBody @Valid LoteamentoCreateDto createDto) {
@@ -40,6 +43,14 @@ public class LoteamentoController {
             @RequestBody @Valid QuadraCreateDto createDto
     ) {
         return ResponseEntity.status(HttpStatus.CREATED).body(loteamentoService.createQuadra(id, createDto));
+    }
+
+    @GetMapping("/{loteamentoId}/quadras/{quadraId}/lotes")
+    public ResponseEntity<List<LoteResponseDto>> listarLotes(
+            @PathVariable Integer loteamentoId,
+            @PathVariable Integer quadraId
+    ) {
+        return ResponseEntity.ok(loteService.listarPorQuadra(loteamentoId, quadraId));
     }
 
 }

@@ -2,6 +2,7 @@ package com.br.meuimovel.service;
 
 import com.br.meuimovel.dtos.CidadeResponseDto;
 import com.br.meuimovel.dtos.corretor.CorretorCreateDto;
+import com.br.meuimovel.dtos.corretor.CorretorUpdateDto;
 import com.br.meuimovel.dtos.corretor.CorretorPublicoResponseDto;
 import com.br.meuimovel.dtos.empresa.EmpresaPublicaResponseDto;
 import com.br.meuimovel.enums.TipoEmpresa;
@@ -101,6 +102,41 @@ class CorretorServiceTest {
         assertThrows(UnauthorizedOperationException.class, () -> corretorService.create(createDto(), foto()));
 
         verifyNoInteractions(usuarioRepository, corretorRepository, fotoValidator, fileStorageService);
+    }
+
+    @Test
+    void updateChangesProfessionalDataForBrokerFromAuthenticatedCompany() {
+        autenticar(gestor(empresa(7)));
+        Corretor corretor = corretor(21, 7, UsuarioStatus.ATIVO);
+        CorretorUpdateDto dto = new CorretorUpdateDto(
+                "Ana Corretora", "ana@example.com", "CRECI-ATUALIZADO", "81911112222",
+                "81933334444", "Atendimento residencial");
+        when(corretorRepository.findByIdAndUsuario_Empresa_Id(21, 7)).thenReturn(Optional.of(corretor));
+        when(corretorRepository.existsByCreciAndIdNot(dto.creci(), 21)).thenReturn(false);
+        when(usuarioRepository.existsByEmailAndIdNot(dto.email(), 21)).thenReturn(false);
+        when(corretorRepository.save(corretor)).thenReturn(corretor);
+
+        var response = corretorService.atualizar(21, dto);
+
+        assertEquals("Ana Corretora", response.nome());
+        assertEquals("CRECI-ATUALIZADO", response.creci());
+        assertEquals("ana@example.com", response.email());
+        assertEquals("Atendimento residencial", response.apresentacao());
+        verify(corretorRepository).findByIdAndUsuario_Empresa_Id(21, 7);
+        verify(corretorRepository).save(corretor);
+    }
+
+    @Test
+    void updateDoesNotExposeBrokerFromAnotherCompany() {
+        autenticar(gestor(empresa(7)));
+        when(corretorRepository.findByIdAndUsuario_Empresa_Id(21, 7)).thenReturn(Optional.empty());
+
+        assertThrows(CorretorNotFoundException.class, () -> corretorService.atualizar(21,
+                new CorretorUpdateDto("Ana", "ana@example.com", "CRECI-21", "81911112222",
+                        "81933334444", "Apresentação")));
+
+        verify(corretorRepository, never()).save(any(Corretor.class));
+        verifyNoInteractions(usuarioRepository);
     }
 
     @Test

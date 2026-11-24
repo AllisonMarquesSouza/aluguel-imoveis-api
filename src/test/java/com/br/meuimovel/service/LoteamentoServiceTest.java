@@ -105,6 +105,17 @@ class LoteamentoServiceTest {
     }
 
     @Test
+    void managerCanListSubdivisionFromAuthenticatedCompany() {
+        Usuario usuario = autenticarGestor();
+        when(loteamentoRepository.findAllByEmpresa_IdOrderByNomeAsc(usuario.getEmpresa().getId()))
+                .thenReturn(List.of());
+
+        assertTrue(loteamentoService.listByEmpresa().isEmpty());
+
+        verify(loteamentoRepository).findAllByEmpresa_IdOrderByNomeAsc(usuario.getEmpresa().getId());
+    }
+
+    @Test
     void createQuadraNormalizesIdentifierAndReturnsCounts() {
         Usuario usuario = autenticarCorretor();
         Loteamento loteamento = loteamento(usuario.getEmpresa(), cidade(20));
@@ -142,9 +153,17 @@ class LoteamentoServiceTest {
     }
 
     private Usuario autenticarCorretor() {
+        return autenticar(UsuarioPerfil.CORRETOR);
+    }
+
+    private Usuario autenticarGestor() {
+        return autenticar(UsuarioPerfil.GESTOR);
+    }
+
+    private Usuario autenticar(UsuarioPerfil perfil) {
         Empresa empresa = Empresa.builder().id(7).ativa(true).build();
-        Usuario usuario = new Usuario(empresa, "Corretor", "corretor@example.com", "senha",
-                UsuarioPerfil.CORRETOR, UsuarioStatus.ATIVO, java.time.LocalDateTime.now());
+        Usuario usuario = new Usuario(empresa, "Usuário", "usuario@example.com", "senha",
+                perfil, UsuarioStatus.ATIVO, java.time.LocalDateTime.now());
         usuario.setId(9);
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities()));

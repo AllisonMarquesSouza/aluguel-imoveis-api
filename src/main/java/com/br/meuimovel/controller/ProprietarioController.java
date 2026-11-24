@@ -2,6 +2,7 @@ package com.br.meuimovel.controller;
 
 import com.br.meuimovel.dtos.proprietario.ProprietarioCreateDto;
 import com.br.meuimovel.dtos.proprietario.ProprietarioResponseDto;
+import com.br.meuimovel.dtos.proprietario.ProprietarioUpdateDto;
 import com.br.meuimovel.enums.TipoDocumento;
 import com.br.meuimovel.service.ProprietarioService;
 import jakarta.validation.Valid;
@@ -31,6 +32,14 @@ public class ProprietarioController {
     @PostMapping
     public ResponseEntity<ProprietarioResponseDto> create(@RequestBody @Valid ProprietarioCreateDto createDto){
         return new ResponseEntity<>(proprietarioService.create(createDto), HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ProprietarioResponseDto> atualizar(
+            @PathVariable Integer id,
+            @RequestBody @Valid ProprietarioUpdateDto dto
+    ) {
+        return ResponseEntity.ok(proprietarioService.atualizar(id, dto));
     }
 
 }
