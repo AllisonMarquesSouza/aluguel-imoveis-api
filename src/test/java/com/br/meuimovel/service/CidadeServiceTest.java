@@ -9,6 +9,7 @@ import com.br.meuimovel.exception.CidadeAlreadyExistsException;
 import com.br.meuimovel.exception.CidadeNotFoundException;
 import com.br.meuimovel.exception.UnauthorizedOperationException;
 import com.br.meuimovel.model.Cidade;
+import com.br.meuimovel.model.Empresa;
 import com.br.meuimovel.model.Usuario;
 import com.br.meuimovel.repository.CidadeRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -76,6 +77,49 @@ class CidadeServiceTest {
     }
 
     @Test
+    void gestorListsOnlyCitiesFromAuthenticatedCompany() {
+        autenticar(UsuarioPerfil.GESTOR, UsuarioStatus.ATIVO, 12);
+        when(cidadeRepository.listarPorEmpresaId(12)).thenReturn(List.of(
+                cidade(1, "Recife"), cidade(2, "Olinda")));
+
+        List<CidadeResponseDto> response = cidadeService.listAllEmpresa();
+
+        assertEquals(List.of(
+                new CidadeResponseDto(1, "Recife", "PE"),
+                new CidadeResponseDto(2, "Olinda", "PE")), response);
+        verify(cidadeRepository).listarPorEmpresaId(12);
+    }
+
+    @Test
+    void corretorCanListCitiesFromAuthenticatedCompany() {
+        autenticar(UsuarioPerfil.CORRETOR, UsuarioStatus.ATIVO, 12);
+        when(cidadeRepository.listarPorEmpresaId(12)).thenReturn(List.of(cidade(1, "Recife")));
+
+        List<CidadeResponseDto> response = cidadeService.listAllEmpresa();
+
+        assertEquals(List.of(new CidadeResponseDto(1, "Recife", "PE")), response);
+        verify(cidadeRepository).listarPorEmpresaId(12);
+    }
+
+    @Test
+    void cityListByCompanyRejectsClientAndDoesNotQueryRepository() {
+        autenticar(UsuarioPerfil.CLIENTE, UsuarioStatus.ATIVO, 12);
+
+        assertThrows(UnauthorizedOperationException.class, cidadeService::listAllEmpresa);
+
+        verifyNoInteractions(cidadeRepository);
+    }
+
+    @Test
+    void cityListByCompanyRejectsInactiveManager() {
+        autenticar(UsuarioPerfil.GESTOR, UsuarioStatus.INATIVO, 12);
+
+        assertThrows(UnauthorizedOperationException.class, cidadeService::listAllEmpresa);
+
+        verifyNoInteractions(cidadeRepository);
+    }
+
+    @Test
     void createRejectsExistingNameAndState() {
         autenticar(UsuarioPerfil.ADMINISTRADOR);
         when(cidadeRepository.existsByNomeIgnoreCaseAndUf("Recife", Uf.PE)).thenReturn(true);
@@ -104,8 +148,13 @@ class CidadeServiceTest {
     }
 
     private void autenticar(UsuarioPerfil perfil) {
-        Usuario usuario = new Usuario(null, "Usuário", "usuario@example.com", "hash", perfil,
-                UsuarioStatus.ATIVO, LocalDateTime.now());
+        autenticar(perfil, UsuarioStatus.ATIVO, null);
+    }
+
+    private void autenticar(UsuarioPerfil perfil, UsuarioStatus status, Integer empresaId) {
+        Empresa empresa = empresaId == null ? null : Empresa.builder().id(empresaId).build();
+        Usuario usuario = new Usuario(empresa, "Usuário", "usuario@example.com", "hash", perfil,
+                status, LocalDateTime.now());
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities()));
     }
