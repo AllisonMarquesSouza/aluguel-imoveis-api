@@ -5,6 +5,7 @@ import com.br.meuimovel.dtos.imovel.CasaCreateDto;
 import com.br.meuimovel.dtos.imovel.ApartamentoCreateDto;
 import com.br.meuimovel.dtos.imovel.ImovelCreateDto;
 import com.br.meuimovel.dtos.imovel.ImovelResponseDto;
+import com.br.meuimovel.dtos.imovel.ImovelUpdateDto;
 import com.br.meuimovel.dtos.imovel.LoteCreateDto;
 import com.br.meuimovel.dtos.imovel.TerrenoCreateDto;
 import com.br.meuimovel.dtos.caracteristica.CaracteristicaResponseDto;
@@ -520,6 +521,98 @@ class ImovelServiceTest {
         verify(imovelRepository).findAllByEmpresa_Id(usuario.getEmpresa().getId());
     }
 
+    @Test
+    void managerCanUpdatePropertyOnlyUsingReferencesFromOwnCompany() {
+        Empresa empresa = Empresa.builder().id(7).ativa(true).build();
+        Usuario gestor = new Usuario(empresa, "Gestor", "gestor@example.com", "hash",
+                UsuarioPerfil.GESTOR, UsuarioStatus.ATIVO, LocalDateTime.now());
+        autenticar(gestor);
+        Usuario usuarioCorretor = new Usuario(empresa, "Corretor", "corretor@example.com", "hash",
+                UsuarioPerfil.CORRETOR, UsuarioStatus.ATIVO, LocalDateTime.now());
+        usuarioCorretor.setId(9);
+        Corretor corretor = new Corretor(usuarioCorretor, "/imagens/corretor/9/foto", "CRECI-9",
+                "81999999999", "81999999999", "Apresentação");
+        corretor.setId(9);
+        Proprietario proprietario = Proprietario.builder().id(15).empresa(empresa)
+                .tipoDocumento(TipoDocumento.CPF).documento("12345678901").nome("Proprietário")
+                .telefone("81999999999").email("proprietario@example.com").build();
+        Cidade cidade = new Cidade("Recife", Uf.PE);
+        cidade.setId(20);
+        Imovel existente = Imovel.builder().id(42).codigo("IM-1").titulo("Casa antiga")
+                .empresa(empresa).corretor(corretor).proprietario(proprietario)
+                .finalidade(FinalidadeImovel.VENDA).natureza(NaturezaImovel.CASA)
+                .valorVenda(BigDecimal.valueOf(100_000)).situacao(SituacaoImovel.DISPONIVEL)
+                .casa(Casa.builder().imovel(null).areaTerreno(BigDecimal.valueOf(100))
+                        .areaConstruida(BigDecimal.valueOf(50)).quartos(2).suites(1).banheiros(1)
+                        .salas(1).vagas(1).pavimentos(1).anoConstrucao(2010)
+                        .piscina(false).quintal(true).churrasqueira(false).mobiliada(false).build())
+                .endereco(EnderecoImovel.builder().cep("50000000").logradouro("Rua Antiga").numero("1")
+                        .bairro("Centro").cidade(cidade).latitude(BigDecimal.valueOf(-8.05))
+                        .longitude(BigDecimal.valueOf(-34.9)).build())
+                .build();
+        existente.getCasa().setImovel(existente);
+        existente.getEndereco().setImovel(existente);
+        ImovelUpdateDto dto = new ImovelUpdateDto("IM-1-ATUAL", "Casa atualizada", 9, 15,
+                FinalidadeImovel.VENDA, BigDecimal.valueOf(120_000), null, null, null, "Descrição atualizada",
+                NaturezaImovel.CASA, casaDto(BigDecimal.valueOf(200), BigDecimal.valueOf(80)), null,
+                new EnderecoImovelDto("50000000", "Rua Nova", "20", null, "Boa Viagem", 20,
+                        BigDecimal.valueOf(-8.1), BigDecimal.valueOf(-34.9)), Set.of(), null, null);
+        when(imovelRepository.findByIdAndEmpresa_Id(42, 7)).thenReturn(Optional.of(existente));
+        when(imovelRepository.existsByEmpresa_IdAndCodigoAndIdNot(7, "IM-1-ATUAL", 42)).thenReturn(false);
+        when(proprietarioRepository.findByIdAndEmpresa_Id(15, 7)).thenReturn(Optional.of(proprietario));
+        when(corretorRepository.findByIdAndUsuario_Empresa_Id(9, 7)).thenReturn(Optional.of(corretor));
+        when(cidadeRepository.findById(20)).thenReturn(Optional.of(cidade));
+        when(empresaRepository.atuaNaCidade(7, 20)).thenReturn(true);
+        when(imovelRepository.save(existente)).thenReturn(existente);
+        when(fotoImovelRepository.findAllByImovel_IdOrderByOrdemAsc(42)).thenReturn(List.of());
+
+        ImovelResponseDto response = imovelService.update(42, dto);
+
+        assertEquals("IM-1-ATUAL", response.codigo());
+        assertEquals("Casa atualizada", response.titulo());
+        assertEquals(BigDecimal.valueOf(80), response.casa().areaConstruida());
+        assertEquals("Rua Nova", response.endereco().logradouro());
+        assertEquals(9, response.corretorId());
+        verify(imovelRepository).findByIdAndEmpresa_Id(42, 7);
+        verify(imovelRepository).save(existente);
+    }
+
+    @Test
+    void updateDoesNotExposePropertyFromAnotherCompany() {
+        Usuario gestor = new Usuario(Empresa.builder().id(7).build(), "Gestor", "gestor@example.com", "hash",
+                UsuarioPerfil.GESTOR, UsuarioStatus.ATIVO, LocalDateTime.now());
+        autenticar(gestor);
+        when(imovelRepository.findByIdAndEmpresa_Id(42, 7)).thenReturn(Optional.empty());
+
+        assertThrows(ImovelNotFoundException.class, () -> imovelService.update(42, null));
+
+        verifyNoInteractions(proprietarioRepository, corretorRepository, cidadeRepository);
+        verify(imovelRepository, never()).save(any(Imovel.class));
+    }
+
+    @Test
+    void updateRejectsOwnerReferenceFromAnotherCompany() {
+        Empresa empresa = Empresa.builder().id(7).build();
+        autenticar(new Usuario(empresa, "Gestor", "gestor@example.com", "hash",
+                UsuarioPerfil.GESTOR, UsuarioStatus.ATIVO, LocalDateTime.now()));
+        when(imovelRepository.findByIdAndEmpresa_Id(42, 7))
+                .thenReturn(Optional.of(Imovel.builder().id(42).empresa(empresa).build()));
+        when(imovelRepository.existsByEmpresa_IdAndCodigoAndIdNot(7, "IM-2", 42)).thenReturn(false);
+        when(proprietarioRepository.findByIdAndEmpresa_Id(99, 7)).thenReturn(Optional.empty());
+        ImovelUpdateDto dto = new ImovelUpdateDto("IM-2", "Casa", 9, 99, FinalidadeImovel.VENDA,
+                BigDecimal.valueOf(100_000), null, null, null, null, NaturezaImovel.CASA,
+                casaDto(BigDecimal.valueOf(100), BigDecimal.valueOf(50)), null,
+                new EnderecoImovelDto("50000000", "Rua Exemplo", "10", null, "Centro", 20,
+                        BigDecimal.valueOf(-8.05), BigDecimal.valueOf(-34.9)), Set.of(), null, null);
+
+        assertThrows(com.br.meuimovel.exception.ProprietarioNotFoundException.class,
+                () -> imovelService.update(42, dto));
+
+        verify(proprietarioRepository).findByIdAndEmpresa_Id(99, 7);
+        verifyNoInteractions(corretorRepository, cidadeRepository);
+        verify(imovelRepository, never()).save(any(Imovel.class));
+    }
+
     private Usuario autenticarCorretor() {
         Empresa empresa = Empresa.builder().id(7).ativa(true).build();
         Usuario usuario = new Usuario(empresa, "Corretor", "corretor@example.com", "senha",
@@ -528,6 +621,11 @@ class ImovelServiceTest {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities()));
         return usuario;
+    }
+
+    private void autenticar(Usuario usuario) {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities()));
     }
 
     private ImovelCreateDto dto(FinalidadeImovel finalidade, BigDecimal valorVenda,

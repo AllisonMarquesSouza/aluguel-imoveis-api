@@ -117,6 +117,19 @@ class EmpresaServiceTest {
     }
 
     @Test
+    void managerCanReadOnlyItsCompanyContextAndLogoReference() {
+        Empresa empresa = Empresa.builder().id(7).tipo(TipoEmpresa.IMOBILIARIA).nome("Imobiliária 7")
+                .logoMarcaUrl("/imagens/empresa/7/c4bf744d-a873-4ef0-b1f2-b1532bfb31db").build();
+        autenticar(UsuarioPerfil.GESTOR, empresa);
+
+        var response = empresaService.getContextoGestorAtual();
+
+        assertEquals(7, response.id());
+        assertEquals("Imobiliária 7", response.nome());
+        assertEquals("c4bf744d-a873-4ef0-b1f2-b1532bfb31db", response.logoImagemId());
+    }
+
+    @Test
     void listAllReturnsResponseDtosForAdministrator() {
         autenticar(UsuarioPerfil.ADMINISTRADOR, null);
         Empresa empresa = Empresa.builder().id(5).nome("Imobiliária Recife").build();
