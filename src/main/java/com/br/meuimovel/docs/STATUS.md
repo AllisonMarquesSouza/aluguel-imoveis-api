@@ -243,3 +243,23 @@ Antes de iniciar a próxima etapa, confira o estado real do código e atualize e
 - [x] Testes de `ImagemService`, `LocalFileStorageService` e `FotoValidator`: 8 testes passaram
 - [x] Testes unitários do projeto, excluindo o teste de contexto: 77 testes passaram
 - [ ] `MeuImovelApplicationTests.contextLoads`: não inicializou porque a autenticação do PostgreSQL local falhou (`SQLSTATE 28P01`)
+
+## [WEB] EXTRA 2 — Operações de gestão da API
+
+- [x] Permitir ao gestor atualizar dados profissionais de corretor da mesma empresa, sem alterar senha ou foto pelo fluxo; foto segue no módulo de imagens
+- [x] Disponibilizar consulta, edição de nome/e-mail e alteração de situação de usuários; administrador consulta qualquer empresa e gestor somente a própria empresa
+- [x] Permitir a qualquer usuário ativo trocar a própria senha, exigindo senha atual, confirmação, senha nova diferente e limite de 72 bytes UTF-8 do BCrypt
+- [x] Manter `POST /auth/register` separado do cadastro profissional de corretor
+- [x] Permitir ao corretor atualizar proprietário da própria empresa, validando documento e duplicidade
+- [x] Permitir a gestor e corretor consultar/detalhar imóveis da empresa e atualizar dados comuns e específicos da natureza, validando as referências do mesmo tenant
+- [x] Permitir consulta de loteamentos, quadras e lotes para gestor e corretor, retornando IDs e situações para a operação de situação já existente
+- [x] Disponibilizar contexto autenticado da empresa do gestor com ID e referência da logomarca
+- [x] Aplicar permissões por perfil e isolamento por empresa; usuários inativos ou bloqueados deixam de autenticar com tokens existentes
+- [x] Documentar endpoints e perfis no `README.md`; nenhuma tabela ou migration foi necessária
+
+### Verificação
+
+- [x] `./mvnw -q -DskipTests compile`
+- [x] `./mvnw -q clean -Dtest='!MeuImovelApplicationTests' test` — 161 testes passaram
+- [x] `git diff --check`
+- [ ] `MeuImovelApplicationTests.contextLoads` — não inicializou porque a conexão ao PostgreSQL foi bloqueada no ambiente (`SQLState 08001`, `SocketException: Operation not permitted`)
