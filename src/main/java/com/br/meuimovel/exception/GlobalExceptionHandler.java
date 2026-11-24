@@ -90,6 +90,20 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
     }
 
+    @ExceptionHandler(ContatoImovelNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleContatoImovelNotFoundException(ContatoImovelNotFoundException exception) {
+        ErrorResponse errorResponse = new ErrorResponse(exception.getMessage(), HttpStatus.NOT_FOUND,
+                LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(ContatoImovelInvalidoException.class)
+    public ResponseEntity<ErrorResponse> handleContatoImovelInvalidoException(ContatoImovelInvalidoException exception) {
+        ErrorResponse errorResponse = new ErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST,
+                LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(DocumentoImovelNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleDocumentoImovelNotFoundException(
             DocumentoImovelNotFoundException exception) {

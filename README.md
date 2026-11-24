@@ -61,16 +61,16 @@ As rotas protegidas usam JWT. Envie o token retornado por `POST /auth/login` no 
 Authorization: Bearer <token>
 ```
 
-O token expira em duas horas. As rotas `GET /caracteristica`, `GET /corretor`, `GET /corretor/{id}`, `GET /imagens/{tipo}/{entidadeId}/{imagemId}`, `GET /vitrine/cidades`, `GET /vitrine/imoveis`, `GET /vitrine/imoveis/{id}` e `POST /auth/login` são públicas. `GET /corretor/empresa/ativos` e `GET /corretor/empresa/inativos` exigem autenticação de um gestor ativo e listam os corretores da empresa vinculada ao token, conforme o status da rota. As demais rotas exigem autenticação, além das permissões por perfil descritas nas seções abaixo.
+O token expira em duas horas. As rotas `GET /caracteristica`, `GET /corretor`, `GET /corretor/{id}`, `GET /imagens/{tipo}/{entidadeId}/{imagemId}`, `GET /vitrine/cidades`, `GET /vitrine/imoveis`, `GET /vitrine/imoveis/{id}`, `POST /vitrine/imoveis/{id}/contatos` e `POST /auth/login` são públicas. `GET /corretor/empresa/ativos` e `GET /corretor/empresa/inativos` exigem autenticação de um gestor ativo e listam os corretores da empresa vinculada ao token, conforme o status da rota. As demais rotas exigem autenticação, além das permissões por perfil descritas nas seções abaixo.
 
 ### Perfis e escopo
 
 | Perfil | Acesso relevante |
 | --- | --- |
 | `ADMINISTRADOR` | Registra usuários; lista, cria, atualiza, ativa, desativa e remove empresas; cria e remove cidades; cria características. |
-| `GESTOR` | Cadastra, lista corretores ativos e inativos e ativa/desativa corretores da própria empresa; gerencia documentos, publicação e situação dos imóveis da empresa. O cadastro de corretores exige empresa ativa. |
-| `CORRETOR` | Cadastra e consulta proprietários da própria empresa e cria/consulta os imóveis da empresa. O corretor precisa estar ativo. |
-| Não autenticado | Consulta características, corretores ativos, cidades e imóveis publicados na vitrine e busca imagens pela API. |
+| `GESTOR` | Cadastra, lista corretores ativos e inativos e ativa/desativa corretores da própria empresa; gerencia documentos, publicação, situação e contatos dos imóveis da empresa. O cadastro de corretores exige empresa ativa. |
+| `CORRETOR` | Cadastra e consulta proprietários da própria empresa, cria/consulta imóveis e acompanha contatos dos seus imóveis. O corretor precisa estar ativo. |
+| Não autenticado | Consulta características, corretores ativos, cidades e imóveis publicados na vitrine, registra contatos e busca imagens pela API. |
 
 As consultas de empresa por ID permitem ao administrador consultar qualquer empresa e aos demais usuários consultar apenas a empresa associada à própria conta. Proprietários e imóveis também são limitados à empresa do corretor autenticado. Uma tentativa de consultar um recurso de outra empresa pode retornar `404`.
 
@@ -783,6 +783,23 @@ Filtros opcionais: `texto` procura sem diferenciar maiúsculas/minúsculas em t�
 A área usada no filtro é a construída para casa, privativa para apartamento, total para terreno e a área do lote. Para faixa e ordenação de preço, `finalidade=ALUGUEL` usa o aluguel; as demais finalidades usam o preço de venda. Sem finalidade informada, usa o preço de venda quando existe e, caso contrário, o aluguel. A ordenação aceita `MAIS_RECENTES` (padrão, usando o ID decrescente), `MENOR_PRECO`, `MAIOR_PRECO`, `MENOR_AREA` ou `MAIOR_AREA`. A paginação começa em zero, usa 12 itens por padrão e aceita até 50 por página. A resposta é uma página com `content`, `totalElements`, `totalPages`, `number` e os demais metadados do Spring Data.
 
 Todos os resultados são publicados, disponíveis e atribuídos a corretores ativos. `GET /vitrine/imoveis/{id}` consulta o detalhe com fotos, endereço e coordenadas, dados da natureza e informações públicas do corretor responsável. Imóveis reservados, vendidos, alugados, não publicados ou atribuídos a corretor inativo retornam `404` no detalhe. Os DTOs públicos não incluem proprietário, documentos, código interno do imóvel, identificador da empresa do prédio nem observações internas.
+
+### Contatos de imóveis
+
+`POST /vitrine/imoveis/{id}/contatos` registra um contato sem exigir login do visitante. Envie `canal` como `WHATSAPP`, `TELEFONE` ou `EMAIL`. O servidor associa o contato ao imóvel e ao corretor responsável e grava a data; nenhum dado do visitante ou conteúdo de conversa é armazenado. Só é possível registrar contato para imóvel publicado e disponível cujo corretor esteja ativo.
+
+```http
+POST /vitrine/imoveis/12/contatos
+Content-Type: application/json
+
+{"canal":"WHATSAPP"}
+```
+
+Para WhatsApp, a resposta `201 Created` inclui `whatsappUrl` em `https://wa.me/`, com uma mensagem preenchida usando o código e o título do imóvel. Números locais de 10 ou 11 dígitos recebem o código do Brasil (`55`). Para `TELEFONE` ou `EMAIL`, `whatsappUrl` vem nulo; os dados de contato do corretor já aparecem no detalhe público do imóvel.
+
+`GET /contatos` exige um corretor ou gestor ativo de empresa ativa. O corretor consulta os contatos dos próprios imóveis; o gestor consulta os contatos da empresa. Filtros opcionais: `imovelId`, `dataInicio` e `dataFim` no formato `AAAA-MM-DD`; as datas incluem o dia inteiro. A lista vem da mais recente para a mais antiga.
+
+`PATCH /contatos/{id}/retorno` é restrito ao corretor responsável e atualiza `retorno` para `FALEI`, `VISITA_AGENDADA`, `SEM_RESPOSTA` ou `DESCARTADO`. O gestor pode consultar os contatos da empresa, mas não altera o retorno anotado pelo corretor.
 
 ## Loteamentos, quadras e lotes
 
