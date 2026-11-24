@@ -10,6 +10,7 @@ import java.util.Optional;
 @Repository
 public interface ProprietarioRepository extends JpaRepository<Proprietario, Integer> {
     boolean existsByEmpresaIdAndDocumento(Integer empresaId, String documento);
+    boolean existsByEmpresaIdAndDocumentoAndIdNot(Integer empresaId, String documento, Integer id);
     Optional<Proprietario> findByEmpresaIdAndDocumento(Integer empresaId, String documento);
     Optional<Proprietario> findByIdAndEmpresa_Id(Integer id, Integer empresaId);
     List<Proprietario> findByEmpresaIdAndNomeContainingIgnoreCase(

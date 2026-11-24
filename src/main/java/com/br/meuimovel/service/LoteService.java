@@ -8,6 +8,7 @@ import com.br.meuimovel.enums.UsuarioStatus;
 import com.br.meuimovel.exception.EmpresaInativaException;
 import com.br.meuimovel.exception.ImovelInvalidoException;
 import com.br.meuimovel.exception.LoteNotFoundException;
+import com.br.meuimovel.exception.QuadraNotFoundException;
 import com.br.meuimovel.exception.UnauthorizedOperationException;
 import com.br.meuimovel.mapper.LoteMapper;
 import com.br.meuimovel.model.Empresa;
@@ -18,15 +19,20 @@ import com.br.meuimovel.model.Usuario;
 import com.br.meuimovel.repository.HistoricoSituacaoImovelRepository;
 import com.br.meuimovel.repository.ImovelRepository;
 import com.br.meuimovel.repository.LoteRepository;
+import com.br.meuimovel.repository.QuadraRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class LoteService {
     private final LoteRepository loteRepository;
+    private final QuadraRepository quadraRepository;
     private final ImovelRepository imovelRepository;
     private final HistoricoSituacaoImovelRepository historicoRepository;
 
@@ -62,6 +68,32 @@ public class LoteService {
             lote.setSituacao(updateDto.situacao());
         }
         return LoteMapper.toResponse(loteRepository.save(lote));
+    }
+
+    @Transactional(readOnly = true)
+    public List<LoteResponseDto> listarPorQuadra(Integer loteamentoId, Integer quadraId) {
+        Usuario usuario = getGestorOuCorretorAutenticado();
+        Integer empresaId = usuario.getEmpresa().getId();
+        quadraRepository.findByIdAndLoteamento_IdAndLoteamento_Empresa_Id(quadraId, loteamentoId, empresaId)
+                .orElseThrow(() -> new QuadraNotFoundException(
+                        "Quadra não encontrada neste loteamento e empresa."));
+        return loteRepository.findAllByQuadra_IdAndImovel_Empresa_IdOrderByNumeroAsc(quadraId, empresaId)
+                .stream()
+                .map(LoteMapper::toResponse)
+                .toList();
+    }
+
+    private Usuario getGestorOuCorretorAutenticado() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof Usuario usuario)
+                || (usuario.getPerfil() != UsuarioPerfil.CORRETOR && usuario.getPerfil() != UsuarioPerfil.GESTOR)
+                || usuario.getStatus() != UsuarioStatus.ATIVO
+                || usuario.getEmpresa() == null) {
+            throw new UnauthorizedOperationException(
+                    "A operação exige um corretor ou gestor ativo vinculado a uma empresa.");
+        }
+        return usuario;
     }
 
     private Usuario getGestorAutenticado() {

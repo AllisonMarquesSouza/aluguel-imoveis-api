@@ -12,6 +12,8 @@ public interface QuadraRepository extends JpaRepository<Quadra, Integer> {
     List<Quadra> findAllByLoteamento_IdOrderByIdentificacaoAsc(Integer loteamentoId);
 
     Optional<Quadra> findByIdAndLoteamento_Empresa_Id(Integer id, Integer empresaId);
+    Optional<Quadra> findByIdAndLoteamento_IdAndLoteamento_Empresa_Id(
+            Integer id, Integer loteamentoId, Integer empresaId);
 
     boolean existsByLoteamento_IdAndIdentificacaoIgnoreCase(Integer loteamentoId, String identificacao);
 }

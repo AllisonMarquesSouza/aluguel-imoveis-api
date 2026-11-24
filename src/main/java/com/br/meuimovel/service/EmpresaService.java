@@ -5,6 +5,7 @@ import com.br.meuimovel.dtos.empresa.EmpresaAutonomaCreateDto;
 import com.br.meuimovel.dtos.empresa.EmpresaCreateDto;
 import com.br.meuimovel.dtos.empresa.EmpresaImobiliariaCreateDto;
 import com.br.meuimovel.dtos.empresa.EmpresaResponseDto;
+import com.br.meuimovel.dtos.empresa.EmpresaContextoResponseDto;
 import com.br.meuimovel.dtos.empresa.EmpresaUpdateDto;
 import com.br.meuimovel.enums.TipoEmpresa;
 import com.br.meuimovel.enums.TipoImagem;
@@ -63,6 +64,22 @@ public class EmpresaService {
     @Transactional(readOnly = true)
     public EmpresaResponseDto getResponseById(Integer id) {
         return toResponse(getById(id));
+    }
+
+    @Transactional(readOnly = true)
+    public EmpresaContextoResponseDto getContextoGestorAtual() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof Usuario usuario)
+                || usuario.getPerfil() != UsuarioPerfil.GESTOR
+                || usuario.getStatus() != UsuarioStatus.ATIVO
+                || usuario.getEmpresa() == null) {
+            throw new UnauthorizedOperationException("A operação exige um gestor ativo vinculado a uma empresa.");
+        }
+        Empresa empresa = usuario.getEmpresa();
+        return new EmpresaContextoResponseDto(
+                empresa.getId(), empresa.getTipo(), empresa.getNome(), empresa.getLogoMarcaUrl(),
+                ImagemUrl.extrairImagemId(empresa.getLogoMarcaUrl(), TipoImagem.EMPRESA, empresa.getId()));
     }
 
     @Transactional(readOnly = true)

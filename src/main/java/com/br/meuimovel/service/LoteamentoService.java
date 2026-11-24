@@ -26,6 +26,7 @@ import com.br.meuimovel.repository.LoteamentoRepository;
 import com.br.meuimovel.repository.QuadraRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -55,7 +56,7 @@ public class LoteamentoService {
 
     @Transactional(readOnly = true)
     public List<LoteamentoResponseDto> listByEmpresa() {
-        Integer empresaId = getEmpresaDoCorretorAutenticado().getId();
+        Integer empresaId = getEmpresaDoGestorOuCorretorAutenticado().getId();
         return loteamentoRepository.findAllByEmpresa_IdOrderByNomeAsc(empresaId)
                 .stream()
                 .map(this::toResponse)
@@ -64,7 +65,7 @@ public class LoteamentoService {
 
     @Transactional(readOnly = true)
     public LoteamentoResponseDto getById(Integer id) {
-        Integer empresaId = getEmpresaDoCorretorAutenticado().getId();
+        Integer empresaId = getEmpresaDoGestorOuCorretorAutenticado().getId();
         return toResponse(buscarLoteamento(id, empresaId));
     }
 
@@ -146,6 +147,19 @@ public class LoteamentoService {
                 || usuario.getStatus() != UsuarioStatus.ATIVO
                 || usuario.getEmpresa() == null) {
             throw new UnauthorizedOperationException("A operação exige um corretor ativo vinculado a uma empresa.");
+        }
+        return usuario.getEmpresa();
+    }
+
+    private Empresa getEmpresaDoGestorOuCorretorAutenticado() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof Usuario usuario)
+                || (usuario.getPerfil() != UsuarioPerfil.CORRETOR && usuario.getPerfil() != UsuarioPerfil.GESTOR)
+                || usuario.getStatus() != UsuarioStatus.ATIVO
+                || usuario.getEmpresa() == null) {
+            throw new UnauthorizedOperationException(
+                    "A operação exige um corretor ou gestor ativo vinculado a uma empresa.");
         }
         return usuario.getEmpresa();
     }

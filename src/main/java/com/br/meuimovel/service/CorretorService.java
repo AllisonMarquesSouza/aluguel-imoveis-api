@@ -2,6 +2,7 @@ package com.br.meuimovel.service;
 
 import com.br.meuimovel.dtos.CidadeResponseDto;
 import com.br.meuimovel.dtos.corretor.CorretorCreateDto;
+import com.br.meuimovel.dtos.corretor.CorretorUpdateDto;
 import com.br.meuimovel.dtos.corretor.CorretorPublicoResponseDto;
 import com.br.meuimovel.dtos.corretor.CorretorResponseDto;
 import com.br.meuimovel.dtos.empresa.EmpresaPublicaResponseDto;
@@ -118,6 +119,30 @@ public class CorretorService {
         }
         corretor.getUsuario().setStatus(UsuarioStatus.INATIVO);
         corretorRepository.save(corretor);
+    }
+
+    @Transactional
+    public CorretorResponseDto atualizar(Integer corretorId, CorretorUpdateDto dto) {
+        Usuario gestor = getGestorAutenticado();
+        Corretor corretor = getCorretorDaEmpresa(corretorId, gestor.getEmpresa().getId());
+        Usuario usuario = corretor.getUsuario();
+        String email = dto.email().trim();
+        String creci = dto.creci().trim();
+
+        if (corretorRepository.existsByCreciAndIdNot(creci, corretorId)) {
+            throw new CreciAlreadyExistsException("Corretor com esse CRECI já existe.");
+        }
+        if (usuarioRepository.existsByEmailAndIdNot(email, usuario.getId())) {
+            throw new UsuarioAlreadyExistsException("Já existe um usuário com esse e-mail.");
+        }
+
+        usuario.setNome(dto.nome().trim());
+        usuario.setEmail(email);
+        corretor.setCreci(creci);
+        corretor.setTelefone(dto.telefone().trim());
+        corretor.setWhatsapp(dto.whatsapp().trim());
+        corretor.setApresentacao(dto.apresentacao().trim());
+        return toResponse(corretorRepository.save(corretor));
     }
 
     @Transactional(readOnly = true)

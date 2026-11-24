@@ -2,6 +2,7 @@ package com.br.meuimovel.controller;
 
 import com.br.meuimovel.dtos.imovel.ImovelCreateDto;
 import com.br.meuimovel.dtos.imovel.ImovelResponseDto;
+import com.br.meuimovel.dtos.imovel.ImovelUpdateDto;
 import com.br.meuimovel.service.ImovelService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,5 +36,13 @@ public class ImovelController {
     @GetMapping("/{id}")
     public ResponseEntity<ImovelResponseDto> getById(@PathVariable Integer id) {
         return ResponseEntity.ok(imovelService.getById(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ImovelResponseDto> update(
+            @PathVariable Integer id,
+            @RequestBody @Valid ImovelUpdateDto dto
+    ) {
+        return ResponseEntity.ok(imovelService.update(id, dto));
     }
 }

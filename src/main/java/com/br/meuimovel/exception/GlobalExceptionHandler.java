@@ -40,6 +40,13 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
 
+    @ExceptionHandler(SenhaInvalidaException.class)
+    public ResponseEntity<ErrorResponse> handleSenhaInvalidaException(SenhaInvalidaException exception) {
+        ErrorResponse errorResponse = new ErrorResponse(exception.getMessage(), HttpStatus.BAD_REQUEST,
+                LocalDateTime.now());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(CidadeNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleCidadeNotFoundException(CidadeNotFoundException exception) {
         ErrorResponse errorResponse = new ErrorResponse

@@ -1,6 +1,7 @@
 package com.br.meuimovel.security;
 
 import com.br.meuimovel.repository.UsuarioRepository;
+import com.br.meuimovel.model.Usuario;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.NullMarked;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -28,9 +28,13 @@ public class SecurityFilter extends OncePerRequestFilter {
          String token = this.recoverToken(request);
          if(token != null){
              String subject = tokenService.validateToken(token);
-             UserDetails usuario =  usuarioRepository.findByEmail(subject);
-             var authentication = new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());
-             SecurityContextHolder.getContext().setAuthentication(authentication);
+             Usuario usuario = usuarioRepository.findByEmail(subject);
+             if (usuario != null && usuario.isEnabled()) {
+                 var authentication = new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());
+                 SecurityContextHolder.getContext().setAuthentication(authentication);
+             } else {
+                 SecurityContextHolder.clearContext();
+             }
          }
 
          filterChain.doFilter(request, response);

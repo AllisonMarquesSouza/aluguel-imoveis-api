@@ -2,6 +2,7 @@ package com.br.meuimovel.service;
 
 import com.br.meuimovel.dtos.proprietario.ProprietarioCreateDto;
 import com.br.meuimovel.dtos.proprietario.ProprietarioResponseDto;
+import com.br.meuimovel.dtos.proprietario.ProprietarioUpdateDto;
 import com.br.meuimovel.enums.TipoDocumento;
 import com.br.meuimovel.enums.UsuarioPerfil;
 import com.br.meuimovel.enums.UsuarioStatus;
@@ -80,6 +81,26 @@ public class ProprietarioService {
                 .observacoes(createDto.observacoes())
                 .build();
 
+        return toResponse(proprietarioRepository.save(proprietario));
+    }
+
+    @Transactional
+    public ProprietarioResponseDto atualizar(Integer id, ProprietarioUpdateDto dto) {
+        Integer empresaId = getCorretorAutenticado().getEmpresa().getId();
+        Proprietario proprietario = proprietarioRepository.findByIdAndEmpresa_Id(id, empresaId)
+                .orElseThrow(() -> new ProprietarioNotFoundException("Proprietário não encontrado nesta empresa."));
+        String documento = documentoValidator.validar(dto.tipoDocumento(), dto.documento());
+        if (proprietarioRepository.existsByEmpresaIdAndDocumentoAndIdNot(empresaId, documento, id)) {
+            throw new ProprietarioAlreadyExistsException("Proprietário com esse documento já existe na empresa.");
+        }
+
+        proprietario.setTipoDocumento(dto.tipoDocumento());
+        proprietario.setDocumento(documento);
+        proprietario.setNome(dto.nome().trim());
+        proprietario.setTelefone(dto.telefone().trim());
+        proprietario.setEmail(dto.email().trim());
+        proprietario.setObservacoes(dto.observacoes() == null || dto.observacoes().isBlank()
+                ? null : dto.observacoes().trim());
         return toResponse(proprietarioRepository.save(proprietario));
     }
 

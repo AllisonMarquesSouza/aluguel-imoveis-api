@@ -3,6 +3,7 @@ package com.br.meuimovel.controller;
 import com.br.meuimovel.dtos.empresa.EmpresaAutonomaCreateDto;
 import com.br.meuimovel.dtos.empresa.EmpresaImobiliariaCreateDto;
 import com.br.meuimovel.dtos.empresa.EmpresaResponseDto;
+import com.br.meuimovel.dtos.empresa.EmpresaContextoResponseDto;
 import com.br.meuimovel.dtos.empresa.EmpresaUpdateDto;
 import com.br.meuimovel.service.EmpresaService;
 import jakarta.validation.Valid;
@@ -28,6 +29,11 @@ public class EmpresaController {
     @GetMapping("/{id}")
     public ResponseEntity<EmpresaResponseDto> getById(@PathVariable Integer id){
         return ResponseEntity.ok(empresaService.getResponseById(id));
+    }
+
+    @GetMapping("/atual")
+    public ResponseEntity<EmpresaContextoResponseDto> getContextoGestorAtual() {
+        return ResponseEntity.ok(empresaService.getContextoGestorAtual());
     }
 
     @PostMapping(value = "/imobiliaria", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
