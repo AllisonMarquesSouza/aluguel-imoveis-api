@@ -2,13 +2,18 @@ package com.br.meuimovel.controller;
 
 import com.br.meuimovel.dtos.imovel.ImovelVitrineResponseDto;
 import com.br.meuimovel.dtos.imovel.ImovelVitrineFiltro;
+import com.br.meuimovel.dtos.contato.ContatoImovelCreateDto;
+import com.br.meuimovel.dtos.contato.ContatoImovelRegistroResponseDto;
 import com.br.meuimovel.dtos.CidadeResponseDto;
 import com.br.meuimovel.enums.FinalidadeImovel;
 import com.br.meuimovel.enums.NaturezaImovel;
 import com.br.meuimovel.enums.OrdenacaoVitrine;
+import com.br.meuimovel.service.ContatoImovelService;
 import com.br.meuimovel.service.ImovelVitrineService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -20,6 +25,7 @@ import java.util.List;
 @RequestMapping("/vitrine")
 public class ImovelVitrineController {
     private final ImovelVitrineService imovelVitrineService;
+    private final ContatoImovelService contatoImovelService;
 
     @GetMapping("/cidades")
     public ResponseEntity<List<CidadeResponseDto>> listarCidades() {
@@ -54,5 +60,13 @@ public class ImovelVitrineController {
     @GetMapping("/imoveis/{id}")
     public ResponseEntity<ImovelVitrineResponseDto> buscarDisponivel(@PathVariable Integer id) {
         return ResponseEntity.ok(imovelVitrineService.buscarDisponivel(id));
+    }
+
+    @PostMapping("/imoveis/{id}/contatos")
+    public ResponseEntity<ContatoImovelRegistroResponseDto> registrarContato(
+            @PathVariable Integer id,
+            @RequestBody @Valid ContatoImovelCreateDto dto
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(contatoImovelService.registrarContato(id, dto));
     }
 }
