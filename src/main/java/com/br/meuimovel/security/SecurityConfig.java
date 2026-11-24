@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/empresa/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.DELETE, "/empresa/**").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.PATCH, "/empresa/**").hasRole("ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.GET, "/cidade/empresa").hasAnyRole("GESTOR", "CORRETOR")
                         .requestMatchers(HttpMethod.POST, "/cidade").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.DELETE, "/cidade/{id}").hasRole("ADMINISTRADOR")
                         .requestMatchers(HttpMethod.GET, "/caracteristica").permitAll()

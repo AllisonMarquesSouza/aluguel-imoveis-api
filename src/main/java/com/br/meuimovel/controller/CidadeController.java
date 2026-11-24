@@ -26,6 +26,11 @@ public class CidadeController {
         return ResponseEntity.ok(cidadeService.getResponseById(id));
     }
 
+    @GetMapping("/empresa")
+    public ResponseEntity<List<CidadeResponseDto>> listAllEmpresa() {
+        return ResponseEntity.ok(cidadeService.listAllEmpresa());
+    }
+
     @PostMapping
     public ResponseEntity<CidadeResponseDto> create(@RequestBody @Valid CidadeCreateDto createDto){
         return new ResponseEntity<>(cidadeService.create(createDto), HttpStatus.CREATED);

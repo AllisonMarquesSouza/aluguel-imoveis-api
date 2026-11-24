@@ -328,6 +328,10 @@ Listam cidades ou consultam uma cidade por ID. Exigem autenticação.
 [{ "id": 1, "nome": "Recife", "uf": "PE" }]
 ```
 
+### `GET /cidade/empresa`
+
+Lista as cidades da área de atuação da empresa associada ao usuário autenticado. Exige `GESTOR` ou `CORRETOR` ativo; a empresa é obtida do token. A resposta usa o mesmo formato de `GET /cidade`.
+
 ### `POST /cidade`
 
 Cria cidade. Exige `ADMINISTRADOR`.

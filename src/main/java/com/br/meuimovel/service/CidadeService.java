@@ -3,6 +3,7 @@ package com.br.meuimovel.service;
 import com.br.meuimovel.dtos.CidadeCreateDto;
 import com.br.meuimovel.dtos.CidadeResponseDto;
 import com.br.meuimovel.enums.UsuarioPerfil;
+import com.br.meuimovel.enums.UsuarioStatus;
 import com.br.meuimovel.exception.CidadeAlreadyExistsException;
 import com.br.meuimovel.exception.CidadeNotFoundException;
 import com.br.meuimovel.exception.UnauthorizedOperationException;
@@ -24,8 +25,30 @@ import java.util.Set;
 public class CidadeService {
     private final CidadeRepository cidadeRepository;
 
+    private Usuario getUsuarioAutenticado() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || !(authentication.getPrincipal() instanceof Usuario usuario)
+                || usuario.getStatus() != UsuarioStatus.ATIVO
+                || (usuario.getPerfil() != UsuarioPerfil.GESTOR && usuario.getPerfil() != UsuarioPerfil.CORRETOR)
+                || usuario.getEmpresa() == null) {
+            throw new UnauthorizedOperationException(
+                    "A operação exige um gestor ou corretor ativo vinculado a uma empresa.");
+        }
+        return usuario;
+    }
+
     public List<CidadeResponseDto> listAll() {
         return cidadeRepository.findAll().stream().map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<CidadeResponseDto> listAllEmpresa() {
+        Usuario usuarioAutenticado = getUsuarioAutenticado();
+        return cidadeRepository.listarPorEmpresaId(usuarioAutenticado.getEmpresa().getId())
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     public Set<Cidade> getAllById(Set<Integer> ids) {
