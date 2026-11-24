@@ -1,12 +1,12 @@
 # Arquitetura de dados
 
-Este documento descreve o modelo relacional criado pelas migrations Flyway V1–V16 e V18–V22 do `aluguel-imoveis-api`, considerando também as histórias do projeto. As relações e garantias abaixo refletem o SQL dessas migrations. Regras descritas nas histórias que ainda não aparecem no SQL estão identificadas como validações da aplicação ou como itens fora do escopo atual.
+Este documento descreve o modelo relacional criado pelas migrations Flyway V1–V16 e V18–V23 do `aluguel-imoveis-api`, considerando também as histórias do projeto. As relações e garantias abaixo refletem o SQL dessas migrations. Regras descritas nas histórias que ainda não aparecem no SQL estão identificadas como validações da aplicação ou como itens fora do escopo atual.
 
 ## Visão do modelo
 
 `empresa` representa tanto uma imobiliária quanto um corretor autônomo. Usuários, proprietários e imóveis são associados a uma empresa. Cidades e características são catálogos compartilhados. A empresa pode manter uma lista das cidades em que atua, enquanto cada endereço de imóvel aponta para uma cidade.
 
-O cadastro comum do imóvel mantém uma empresa, um corretor responsável, um proprietário, uma finalidade, uma situação e um indicador independente de publicação. Endereço, fotos, documentos, histórico de situação e características ficam em tabelas próprias. O corretor e o gestor são perfis complementares a `usuario`, identificados pelo mesmo `usuario_id`.
+O cadastro comum do imóvel mantém uma empresa, um corretor responsável, um proprietário, uma finalidade, uma situação e um indicador independente de publicação. Endereço, fotos, documentos, contatos, histórico de situação e características ficam em tabelas próprias. O corretor e o gestor são perfis complementares a `usuario`, identificados pelo mesmo `usuario_id`.
 
 ```mermaid
 erDiagram
@@ -152,6 +152,14 @@ erDiagram
         datetime alterado_em
         string observacao
     }
+    CONTATO_IMOVEL {
+        int id PK
+        int imovel_id FK
+        int corretor_id FK
+        string canal
+        datetime criado_em
+        string retorno
+    }
 
     CIDADE o|--o{ EMPRESA : "cidade do endereco da empresa"
     EMPRESA ||--o{ EMPRESA_CIDADE : "cidades de atuacao"
@@ -182,6 +190,8 @@ erDiagram
     IMOVEL ||--o{ DOCUMENTO_IMOVEL : "anexos privados"
     IMOVEL ||--o{ HISTORICO_SITUACAO_IMOVEL : "mudancas de situacao"
     USUARIO ||--o{ HISTORICO_SITUACAO_IMOVEL : "autor da mudanca"
+    IMOVEL ||--o{ CONTATO_IMOVEL : "contatos recebidos"
+    CORRETOR ||--o{ CONTATO_IMOVEL : "responsavel pelo contato"
 ```
 
 No diagrama, `o|` indica zero ou um, `||` indica exatamente um e `o{` indica zero ou muitos. Assim, a relação entre imóvel e endereço é opcional no banco: um imóvel pode não ter linha em `endereco_imovel`, embora cada linha de endereço tenha cidade e coordenadas obrigatórias.
@@ -211,6 +221,7 @@ No diagrama, `o|` indica zero ou um, `||` indica exatamente um e `o{` indica zer
 | V20 | `lote` | Dados do lote associados ao imóvel e a uma quadra; sua situação espelha a situação comum do imóvel. |
 | V21 | `documento_imovel` | Um anexo de cada tipo por imóvel, com nome, chave do arquivo externo e data do documento. |
 | V22 | `historico_situacao_imovel` | Transições de situação com autor, data, situação anterior/nova e observação. |
+| V23 | `contato_imovel` | Contatos recebidos por imóvel, com corretor responsável, canal, data e retorno anotado pelo corretor. |
 
 ### Cardinalidades e remoções
 
@@ -218,10 +229,10 @@ No diagrama, `o|` indica zero ou um, `||` indica exatamente um e `o{` indica zer
 - Uma empresa pode atuar em várias cidades, e uma cidade pode pertencer à área de atuação de várias empresas. A cidade de endereço da empresa (`empresa.cidade_id`) é uma relação separada da lista `empresa_cidade`.
 - Um usuário pode ter zero ou um registro em `corretor` e zero ou um em `gestor`. As chaves não exigem que `usuario.perfil` corresponda à tabela de perfil: por exemplo, o banco não impede um usuário `CLIENTE` de ter uma linha em `corretor`.
 - Cada imóvel tem exatamente um corretor e um proprietário referenciados. Um corretor ou proprietário pode estar ligado a vários imóveis.
-- Um imóvel pode ter zero ou um endereço, zero ou muitas fotos, documentos e características. Há no máximo um documento de cada tipo por imóvel; os bytes ficam no armazenamento configurado, não no banco.
+- Um imóvel pode ter zero ou um endereço, zero ou muitas fotos, documentos, contatos, histórico e características. Há no máximo um documento de cada tipo por imóvel; os bytes ficam no armazenamento configurado, não no banco.
 - Um imóvel pode ter zero ou um registro em cada tabela de detalhes de natureza; o serviço garante que novos cadastros tenham exatamente os detalhes compatíveis com sua natureza.
 - Um loteamento pertence a uma empresa e a uma cidade; contém quadras, e cada lote é também um imóvel ligado a uma quadra.
-- Excluir imóvel exclui em cascata seu endereço, fotos, documentos, histórico, associações de características e detalhes de natureza, incluindo o lote. Quadras não podem ser excluídas enquanto tiverem lotes, e loteamentos não podem ser excluídos enquanto tiverem quadras. Excluir usuário exclui em cascata as linhas de `corretor` e `gestor`; porém, um corretor referenciado por imóvel ou um usuário autor de histórico não pode ser removido enquanto essa referência existir (`ON DELETE RESTRICT`). Cidades referenciadas e características usadas também têm exclusão restrita. As demais ações de exclusão seguem a ação declarada na FK ou o padrão do banco quando não há cláusula `ON DELETE`.
+- Excluir imóvel exclui em cascata seu endereço, fotos, documentos, contatos, histórico, associações de características e detalhes de natureza, incluindo o lote. Quadras não podem ser excluídas enquanto tiverem lotes, e loteamentos não podem ser excluídos enquanto tiverem quadras. Excluir usuário exclui em cascata as linhas de `corretor` e `gestor`; porém, um corretor referenciado por imóvel ou contato, ou um usuário autor de histórico, não pode ser removido enquanto essa referência existir (`ON DELETE RESTRICT`). Cidades referenciadas e características usadas também têm exclusão restrita. As demais ações de exclusão seguem a ação declarada na FK ou o padrão do banco quando não há cláusula `ON DELETE`.
 
 ## O que o banco garante
 
@@ -247,6 +258,7 @@ As migrations criam PKs e FKs para a existência das entidades referenciadas. Ta
 - `lote`: usa `imovel_id` como PK e FK, relaciona-se a uma quadra, exige número, área, frente, fundo e condições de parcelamento não vazios; número único por quadra e situação sincronizada com `imovel.situacao`.
 - `documento_imovel`: tipo limitado a matrícula, carnê do IPTU ou autorização do proprietário; no máximo um documento de cada tipo por imóvel. O banco registra o identificador do arquivo externo e a data documental, não os bytes.
 - `historico_situacao_imovel`: transições devem mudar o estado e guardar um autor existente, horário e observação não vazia; valores anterior e novo pertencem ao enum de situação do imóvel.
+- `contato_imovel`: cada registro referencia imóvel e corretor existentes; canal é `WHATSAPP`, `TELEFONE` ou `EMAIL`; retorno é nulo enquanto não anotado e, quando preenchido, é `FALEI`, `VISITA_AGENDADA`, `SEM_RESPOSTA` ou `DESCARTADO`. Excluir imóvel remove seus contatos; a referência ao corretor impede excluir um corretor ainda relacionado.
 - `endereco_imovel`: no máximo um endereço por imóvel e, se cadastrado, cidade e coordenadas não nulas.
 - `imovel_caracteristica`: o mesmo par imóvel/característica não pode se repetir.
 - `foto_imovel`: a mesma ordem não pode se repetir para um imóvel.
@@ -255,7 +267,7 @@ Os checks de documento verificam o tipo e o comprimento, mas não os dígitos, a
 
 ## Multitenancy: garantias e lacunas
 
-`empresa` é a fronteira de tenant usada no cadastro. `usuario`, `proprietario`, `imovel`, `predio` e `loteamento` têm vínculo com `empresa_id`; documentos e histórico herdam o tenant por meio do imóvel. O banco exige que essas referências apontem para uma empresa existente; em `usuario`, o check adicional torna a empresa obrigatória para gestor, corretor e cliente. `UNIQUE (empresa_id, codigo)` permite que empresas diferentes reutilizem o mesmo código de imóvel sem colisão. `UNIQUE (empresa_id, documento)` permite que o mesmo documento de proprietário exista em empresas diferentes, mas não duas vezes na mesma empresa.
+`empresa` é a fronteira de tenant usada no cadastro. `usuario`, `proprietario`, `imovel`, `predio` e `loteamento` têm vínculo com `empresa_id`; documentos, contatos e histórico herdam o tenant por meio do imóvel. O banco exige que essas referências apontem para uma empresa existente; em `usuario`, o check adicional torna a empresa obrigatória para gestor, corretor e cliente. `UNIQUE (empresa_id, codigo)` permite que empresas diferentes reutilizem o mesmo código de imóvel sem colisão. `UNIQUE (empresa_id, documento)` permite que o mesmo documento de proprietário exista em empresas diferentes, mas não duas vezes na mesma empresa.
 
 As FKs de `imovel` verificam separadamente que a empresa, o corretor e o proprietário existem. Elas **não** verificam que o corretor e o proprietário pertencem à mesma empresa indicada em `imovel.empresa_id`. Também não há uma FK que assegure que o corretor ligado ao imóvel tenha um usuário com `empresa_id` correspondente, que o usuário autenticado possa operar naquele tenant ou que a cidade do endereço esteja em `empresa_cidade`.
 
@@ -267,7 +279,7 @@ Alguns campos têm unicidade global apesar da separação por empresa: `usuario.
 
 ## Validações que pertencem ao serviço
 
-As histórias do projeto descrevem regras que não estão implementadas por constraints nas V1–V16 e V18–V22. O serviço precisa validá-las ao criar, atualizar e publicar imóveis:
+As histórias do projeto descrevem regras que não estão implementadas por constraints nas V1–V16 e V18–V23. O serviço precisa validá-las ao criar, atualizar e publicar imóveis:
 
 - Exigir `valor_venda` para `VENDA`, `VENDA_E_ALUGUEL` e para todo lote; `valor_aluguel` é exigido para `ALUGUEL` e `VENDA_E_ALUGUEL`. A migration não possui check para a finalidade nem para valores negativos; a aplicação valida os campos conforme a finalidade.
 - Exigir endereço completo e coordenadas antes de publicar. A aplicação informa os campos ausentes; apartamentos usam o endereço compartilhado do prédio.
@@ -286,12 +298,14 @@ As histórias do projeto descrevem regras que não estão implementadas por cons
 - Exibir na vitrine pública somente imóveis com `publicado = true`, situação `DISPONIVEL` e corretor ativo; bloquear a publicação enquanto o endereço estiver incompleto.
 - Na busca pública, exigir cidade, paginar resultados e aplicar texto, finalidade, natureza, preço, cômodos, bairro, área e características; a lista de cidades vem da área de atuação das empresas ativas.
 - Montar a resposta pública com DTOs próprios, sem proprietário, documentos, código interno ou identificador do tenant do prédio; incluir endereço/coordenadas, características, fotos, natureza e corretor responsável.
+- Registrar contatos públicos somente para imóveis publicados, disponíveis e com corretor ativo; obter o corretor do próprio imóvel, nunca de um ID enviado pelo visitante. O registro guarda canal e data sem armazenar dados do visitante nem conteúdo de conversa; a caixa filtra por empresa, corretor, imóvel e período.
+- Gerar o link do WhatsApp com o número do corretor e uma mensagem com código e título do imóvel; permitir que apenas o corretor responsável altere o retorno do contato.
 - Validar dígitos e checksums de CPF/CNPJ, formatos de e-mail e telefone, CEP, e limites geográficos de latitude e longitude. As colunas e constraints atuais não verificam essas regras.
 - Conferir as permissões do perfil logado para cada operação e a coerência entre `usuario.perfil` e as tabelas `gestor`/`corretor`.
 
 ## Limites desta versão do esquema
 
-As histórias e a descrição do projeto também mencionam rural, contratos e parcelas. As naturezas casa e terreno livre são implementadas pelas migrations V13 e V14; prédio e apartamento, respectivamente, pelas V15 e V16; loteamentos, quadras e lotes pelas V18–V20; documentos e publicação/histórico pelas V21 e V22, com as colunas de situação e publicação na V9. Rural e os módulos de contratos permanecem fora deste escopo.
+As histórias e a descrição do projeto também mencionam rural, contratos e parcelas. As naturezas casa e terreno livre são implementadas pelas migrations V13 e V14; prédio e apartamento, respectivamente, pelas V15 e V16; loteamentos, quadras e lotes pelas V18–V20; documentos, publicação/histórico e contatos pelas V21–V23, com as colunas de situação e publicação na V9. Rural e os módulos de contratos permanecem fora deste escopo.
 
 ## Armazenamento de imagens (WEB EXTRA)
 

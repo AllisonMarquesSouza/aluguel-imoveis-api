@@ -1,6 +1,6 @@
 # Status do projeto
 
-> Atualizado em 19/11/2026. Consulte os requisitos e a arquitetura para o detalhamento das regras de negócio e do banco.
+> Atualizado em 24/11/2026. Consulte os requisitos e a arquitetura para o detalhamento das regras de negócio e do banco.
 
 ## W01 — Empresa e usuários
 
@@ -204,6 +204,24 @@ Os documentos usam armazenamento local configurável por `APP_STORAGE_LOCATION`,
 - [x] `./mvnw -q -Dtest='!MeuImovelApplicationTests' test` — 134 testes passaram
 - [x] `git diff --check`
 - [ ] `MeuImovelApplicationTests.contextLoads` e validação da query nativa — não inicializou porque PostgreSQL não está aceitando conexão em `localhost:5432` (`SQLState 08001`, connection refused)
+
+## W11 — Contato pelo WhatsApp, registro e caixa do corretor
+
+- [x] Criar a tabela `contato_imovel` na migration V23, registrando imóvel, corretor responsável, canal, data e retorno opcional
+- [x] Registrar contatos de visitantes sem login, somente para imóvel publicado, disponível e com corretor ativo
+- [x] Montar o link `wa.me` com o WhatsApp do corretor e mensagem com código e título do imóvel
+- [x] Permitir ao corretor consultar seus contatos e ao gestor consultar os contatos da empresa, com filtros por imóvel e período
+- [x] Permitir que somente o corretor responsável anote o retorno (`FALEI`, `VISITA_AGENDADA`, `SEM_RESPOSTA` ou `DESCARTADO`)
+- [x] Não armazenar identificação do visitante nem conteúdo da conversa
+- [x] Documentar endpoints e modelo de dados no `README.md` e na arquitetura
+
+### Verificação
+
+- [x] `./mvnw -q -DskipTests compile`
+- [x] `./mvnw -q -Dtest=ContatoImovelServiceTest test` — 10 testes passaram
+- [x] `./mvnw -q clean -Dtest='!MeuImovelApplicationTests' test` — 135 testes passaram
+- [x] `git diff --check`
+- [ ] `MeuImovelApplicationTests.contextLoads` e validação da migration V23 — não inicializaram porque não há PostgreSQL aceitando conexões em `localhost:5432` (`Connection refused`), inclusive com acesso local habilitado
 
 ## Instrução de continuidade
 
